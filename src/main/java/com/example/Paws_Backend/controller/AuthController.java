@@ -41,7 +41,7 @@ public class AuthController {
         {
             throw new UserExcepition("this email already used with another account");
         }
-        User newUser=new User(user.getEmail(),user.getName(),passwordEncoder.encode(user.getPassword()));
+        User newUser=new User(user.getEmail(),user.getName(),passwordEncoder.encode(user.getPassword()),user.getUserRole());
 //        newUser.setEmail(user.getEmail());
 //        newUser.setFirstName(user.getFirstName());
 //        newUser.setLastName(user.getLastName());

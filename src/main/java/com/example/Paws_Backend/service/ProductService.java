@@ -17,4 +17,8 @@ public interface ProductService {
     List<Product> getAllProducts();
 
     List<Product> searchProducts(String keyword);
+
+    List<Product> findProductsBySellerName(String sellerName);
+
+    List<Product> findProductsBySellerId(Long sellerId);
 }

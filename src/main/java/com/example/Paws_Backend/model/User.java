@@ -22,10 +22,7 @@ public class User {
     private String userRole; // Added userRole property
 
     @OneToMany(mappedBy = "user")
-    private List<PetOrder> petOrders;
-
-    @OneToMany(mappedBy = "user")
-    private List<Order> accessoriesOrders;
+    private List<PurchaseOrder> orders; // Changed to list of Order
 
     // Default constructor
     public User() {
@@ -88,20 +85,12 @@ public class User {
         this.userRole = userRole;
     }
 
-    public List<PetOrder> getPetOrders() {
-        return petOrders;
+    public List<PurchaseOrder> getOrders() {
+        return orders;
     }
 
-    public void setPetOrders(List<PetOrder> petOrders) {
-        this.petOrders = petOrders;
-    }
-
-    public List<Order> getAccessoriesOrders() {
-        return accessoriesOrders;
-    }
-
-    public void setAccessoriesOrders(List<Order> accessoriesOrders) {
-        this.accessoriesOrders = accessoriesOrders;
+    public void setOrders(List<PurchaseOrder> orders) {
+        this.orders = orders;
     }
 
     @Override
@@ -112,9 +101,8 @@ public class User {
                 ", name='" + name + '\'' +
                 ", profileImg='" + profileImg + '\'' +
                 ", password='" + password + '\'' +
-                ", userRole='" + userRole + '\'' + // Updated toString method
-                ", petOrders=" + petOrders +
-                ", accessoriesOrders=" + accessoriesOrders +
+                ", userRole='" + userRole + '\'' +
+                ", orders=" + orders +
                 '}';
     }
 }

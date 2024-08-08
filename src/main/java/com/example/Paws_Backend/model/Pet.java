@@ -4,14 +4,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-
+import jakarta.persistence.ManyToOne;
 import java.util.List;
 
 @Entity
 public class Pet {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
     private String breedName;
     private List<String> images;
     private String petType;
@@ -19,6 +21,26 @@ public class Pet {
     private Long price;
     private Long age;
 
+    @ManyToOne
+    private User seller;
+
+    // Default constructor
+    public Pet() {
+    }
+
+    // Parameterized constructor
+    public Pet(Long id, String breedName, List<String> images, String petType, String petDescription, Long price, Long age, User seller) {
+        this.id = id;
+        this.breedName = breedName;
+        this.images = images;
+        this.petType = petType;
+        this.petDescription = petDescription;
+        this.price = price;
+        this.age = age;
+        this.seller = seller;
+    }
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -75,16 +97,11 @@ public class Pet {
         this.age = age;
     }
 
-    public Pet() {
+    public User getSeller() {
+        return seller;
     }
 
-    public Pet(Long id, String breedName, List<String> images, String petType, String petDescription, Long price, Long age) {
-        this.id = id;
-        this.breedName = breedName;
-        this.images = images;
-        this.petType = petType;
-        this.petDescription = petDescription;
-        this.price = price;
-        this.age = age;
+    public void setSeller(User seller) {
+        this.seller = seller;
     }
 }

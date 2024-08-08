@@ -1,16 +1,23 @@
 package com.example.Paws_Backend.service;
 
 import com.example.Paws_Backend.config.JwtProvider;
+import com.example.Paws_Backend.model.PurchaseOrder;
 import com.example.Paws_Backend.model.User;
+import com.example.Paws_Backend.repository.PurchaseOrderRepository;
 import com.example.Paws_Backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 @Service
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PurchaseOrderRepository purchaseOrderRepository;
     @Override
     public User findUserById(Long userId) {
         return userRepository.findById(userId).orElse(null);
@@ -19,6 +26,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public User findUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+    @Override
+    public List<PurchaseOrder> getOrdersNeedingApproval(Long sellerId) {
+        return purchaseOrderRepository.findAll().stream()
+                .filter(order -> {
+                    Boolean status = order.getSellerApprovalStatuses().get(sellerId);
+                    return status != null && !status; // Ensure the status is `false`
+                })
+                .collect(Collectors.toList());
     }
 
     @Override

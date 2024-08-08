@@ -14,39 +14,43 @@ import java.util.Optional;
 @Service
 public class ProductServiceImpl implements ProductService {
 
-    private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+    @Autowired
+    private ProductRepository productRepository;
 
     @Autowired
-    public ProductServiceImpl(ProductRepository productRepository, UserRepository userRepository) {
-        this.productRepository = productRepository;
-        this.userRepository = userRepository;
-    }
+    private UserRepository userRepository;
 
     @Override
     public Product createProduct(Product product, Long userId) {
         verifySellerRole(userId);
+        User seller = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with ID " + userId + " does not exist."));
+        product.setSeller(seller);
         return productRepository.save(product);
     }
 
     @Override
     public Product updateProduct(Long id, Product product, Long userId) {
         verifySellerRole(userId);
-        if (productRepository.existsById(id)) {
-            product.setId(id);
-            return productRepository.save(product);
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product with ID " + id + " does not exist."));
+        if (!existingProduct.getSeller().getId().equals(userId)) {
+            throw new AccessDeniedException("User with ID " + userId + " does not own the product.");
         }
-        throw new IllegalArgumentException("Product with ID " + id + " does not exist.");
+        product.setId(id);
+        product.setSeller(existingProduct.getSeller()); // Keep the same seller
+        return productRepository.save(product);
     }
 
     @Override
     public void deleteProduct(Long id, Long userId) {
         verifySellerRole(userId);
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
-        } else {
-            throw new IllegalArgumentException("Product with ID " + id + " does not exist.");
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product with ID " + id + " does not exist."));
+        if (!existingProduct.getSeller().getId().equals(userId)) {
+            throw new AccessDeniedException("User with ID " + userId + " does not own the product.");
         }
+        productRepository.deleteById(id);
     }
 
     @Override
@@ -61,7 +65,17 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> searchProducts(String keyword) {
-        return productRepository.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(keyword, keyword);
+        return productRepository.searchProducts(keyword);
+    }
+
+    @Override
+    public List<Product> findProductsBySellerName(String sellerName) {
+        return productRepository.findProductsBySellerName(sellerName);
+    }
+
+    @Override
+    public List<Product> findProductsBySellerId(Long sellerId) {
+        return productRepository.findProductsBySellerId(sellerId);
     }
 
     private void verifySellerRole(Long userId) {

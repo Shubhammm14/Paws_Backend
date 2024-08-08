@@ -3,12 +3,25 @@ package com.example.Paws_Backend.service;
 import com.example.Paws_Backend.model.Pet;
 import com.example.Paws_Backend.model.User;
 
+import java.util.List;
+import java.util.Optional;
+
 public interface PetService {
-    /**
-     * Creates a new pet for sale.
-     * @param pet The pet to be created.
-     * @param user The role of the user attempting to create the pet.
-     * @throws IllegalArgumentException if the user does not have the role of "seller".
-     */
-    void createPetForSale(Pet pet, User user);
+
+
+    Pet createPet(Pet pet, Long userId);
+
+    Pet updatePet(Long id, Pet pet, Long userId);
+
+    void deletePet(Long id, Long userId);
+
+    Optional<Pet> getPetById(Long id);
+
+    List<Pet> getAllPets();
+
+    List<Pet> searchPets(String keyword);
+
+    List<Pet> searchPetsBySellerId(Long sellerId);
+
+    List<Pet> searchPetsBySellerName(String sellerName);
 }

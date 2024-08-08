@@ -4,7 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-
+import jakarta.persistence.ManyToOne;
 import java.util.List;
 
 @Entity
@@ -20,17 +20,21 @@ public class Product {
     private String category;
     private List<String> imageUrl;
 
+    @ManyToOne
+    private User seller;
+
     // Default constructor
     public Product() {
     }
 
     // Parameterized constructor
-    public Product(String name, String description, Long price, String category, List<String> imageUrl) {
+    public Product(String name, String description, Long price, String category, List<String> imageUrl, User seller) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.category = category;
         this.imageUrl = imageUrl;
+        this.seller = seller;
     }
 
     // Getters and Setters
@@ -82,6 +86,14 @@ public class Product {
         this.imageUrl = imageUrl;
     }
 
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
+    }
+
     @Override
     public String toString() {
         return "Product{" +
@@ -90,7 +102,8 @@ public class Product {
                 ", description='" + description + '\'' +
                 ", price=" + price +
                 ", category='" + category + '\'' +
-                ", imageUrl='" + imageUrl + '\'' +
+                ", imageUrl=" + imageUrl +
+                ", seller=" + seller +
                 '}';
     }
 }
