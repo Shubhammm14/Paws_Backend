@@ -1,7 +1,5 @@
 package com.example.Paws_Backend.controller;
 
-
-
 import com.example.Paws_Backend.config.JwtProvider;
 import com.example.Paws_Backend.exception.UserExcepition;
 import com.example.Paws_Backend.model.CustomUserDetailService;
@@ -36,32 +34,24 @@ public class AuthController {
     @PostMapping("/signup")
     public AuthResponse createUser(@RequestBody User user)throws UserExcepition{
         User isExist=userRepository.findByEmail((user.getEmail()));
-
         if(isExist!=null)
         {
             throw new UserExcepition("this email already used with another account");
         }
         User newUser=new User(user.getEmail(),user.getName(),passwordEncoder.encode(user.getPassword()),user.getUserRole());
-//        newUser.setEmail(user.getEmail());
-//        newUser.setFirstName(user.getFirstName());
-//        newUser.setLastName(user.getLastName());
-//        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
         User  savedUser=userRepository.save(newUser);
         Authentication authentication=new UsernamePasswordAuthenticationToken(savedUser.getEmail(),savedUser.getPassword());
         String token= JwtProvider.generateToken(authentication);
-
         return new AuthResponse(token,"validation done");
     }
-    @PostMapping("/signin")
-    public AuthResponse signin(@RequestBody LoginRequest loginRequest) throws Exception {
-
+    @PostMapping("/sign_in")
+    public AuthResponse signIn(@RequestBody LoginRequest loginRequest) throws Exception {
         Authentication authentication= authenticate(loginRequest.getEmail(),loginRequest.getPassword());
         String token=JwtProvider.generateToken(authentication);
         return new AuthResponse(token,"validation done");
     }
     private Authentication authenticate(String email,String password) throws Exception {
         UserDetails userDetails=customUserDetailService.loadUserByUsername(email);
-
         if(userDetails==null)
             throw new BadCredentialsException("Invalid email");
         if (!passwordEncoder.matches(password,userDetails.getPassword()))
