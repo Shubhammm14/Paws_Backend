@@ -20,6 +20,9 @@ public class User {
     private String profileImg;
     private String password;
     private String userRole; // Added userRole property
+    private String vetType; // Added vetType property
+    private String vetDescription; // Added vetDescription property
+    private Integer numberOfAppointments; // Added numberOfAppointments property
 
     @OneToMany(mappedBy = "user")
     private List<PurchaseOrder> orders; // Changed to list of Order
@@ -85,6 +88,30 @@ public class User {
         this.userRole = userRole;
     }
 
+    public String getVetType() {
+        return vetType;
+    }
+
+    public void setVetType(String vetType) {
+        this.vetType = vetType;
+    }
+
+    public String getVetDescription() {
+        return vetDescription;
+    }
+
+    public void setVetDescription(String vetDescription) {
+        this.vetDescription = vetDescription;
+    }
+
+    public Integer getNumberOfAppointments() {
+        return numberOfAppointments;
+    }
+
+    public void setNumberOfAppointments(Integer numberOfAppointments) {
+        this.numberOfAppointments = numberOfAppointments;
+    }
+
     public List<PurchaseOrder> getOrders() {
         return orders;
     }
@@ -102,6 +129,9 @@ public class User {
                 ", profileImg='" + profileImg + '\'' +
                 ", password='" + password + '\'' +
                 ", userRole='" + userRole + '\'' +
+                ", vetType='" + vetType + '\'' +
+                ", vetDescription='" + vetDescription + '\'' +
+                ", numberOfAppointments=" + numberOfAppointments +
                 ", orders=" + orders +
                 '}';
     }
