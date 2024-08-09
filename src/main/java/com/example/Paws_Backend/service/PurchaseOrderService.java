@@ -32,4 +32,5 @@ public interface PurchaseOrderService {
     List<PurchaseOrder> getConfirmedOrdersBySeller(Long sellerId);
     List<PurchaseOrder> getCanceledOrdersBySeller(Long sellerId);
 
+    void completeOrder(Long orderId, Long sellerId, String otp) throws AccessDeniedException;
 }

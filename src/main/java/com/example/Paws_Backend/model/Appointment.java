@@ -18,7 +18,7 @@ public class Appointment {
 
     private LocalDateTime appointmentDate; // Date and time of the appointment
     private String description; // Description of the appointment
-    private String status; // Status of the appointment (e.g., Scheduled, Completed, Canceled)
+
 
     @ManyToOne
     private User vet; // The vet associated with this appointment
@@ -31,12 +31,26 @@ public class Appointment {
     }
 
     // Parameterized constructor
-    public Appointment(LocalDateTime appointmentDate, String description, String status, User vet, User client) {
+    public Appointment(LocalDateTime appointmentDate, String description, AppointmentStatus status, User vet, User client) {
         this.appointmentDate = appointmentDate;
         this.description = description;
         this.status = status;
         this.vet = vet;
         this.client = client;
+    }
+    @Enumerated(EnumType.STRING)
+    private AppointmentStatus status;
+
+    // Other fields and methods...
+
+    // Getters and Setters...
+
+    public AppointmentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AppointmentStatus status) {
+        this.status = status;
     }
 
     // Getters and Setters
@@ -64,13 +78,7 @@ public class Appointment {
         this.description = description;
     }
 
-    public String getStatus() {
-        return status;
-    }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
 
     public User getVet() {
         return vet;

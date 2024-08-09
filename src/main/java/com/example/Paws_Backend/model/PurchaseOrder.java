@@ -2,6 +2,8 @@ package com.example.Paws_Backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -42,8 +44,24 @@ public class PurchaseOrder {
     private boolean orderConfirmed;
     private LocalDateTime shipmentTime;
     private Double cancellationFee;
+    private String otp;
+    private boolean orderCompleted;
 
-    // Getters and Setters...
+    // Getters and Setters
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+    // Method to generate a random OTP
+    public void generateOtp() {
+        SecureRandom random = new SecureRandom();
+        int number = random.nextInt(999999);
+        this.otp = String.format("%06d", number);
+    }
 
     public LocalDateTime getShipmentTime() {
         return shipmentTime;
@@ -60,6 +78,7 @@ public class PurchaseOrder {
     public void setCancellationFee(Double cancellationFee) {
         this.cancellationFee = cancellationFee;
     }
+
     public PurchaseOrder() {
     }
 
@@ -89,7 +108,6 @@ public class PurchaseOrder {
         return calculatePrice() + (this.deliveryCost != null ? this.deliveryCost : 0.0);
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -199,6 +217,14 @@ public class PurchaseOrder {
         return sellerApprovalStatuses.values().stream().allMatch(Boolean::booleanValue);
     }
 
+    public boolean isOrderCompleted() {
+        return orderCompleted;
+    }
+
+    public void setOrderCompleted(boolean orderCompleted) {
+        this.orderCompleted = orderCompleted;
+    }
+
     @Override
     public String toString() {
         return "PurchaseOrder{" +
@@ -215,6 +241,10 @@ public class PurchaseOrder {
                 ", receiverAddress='" + receiverAddress + '\'' +
                 ", sellerApprovalStatuses=" + sellerApprovalStatuses +
                 ", orderConfirmed=" + orderConfirmed +
+                ", shipmentTime=" + shipmentTime +
+                ", cancellationFee=" + cancellationFee +
+                ", otp='" + otp + '\'' +
+                ", orderCompleted=" + orderCompleted +
                 '}';
     }
 }

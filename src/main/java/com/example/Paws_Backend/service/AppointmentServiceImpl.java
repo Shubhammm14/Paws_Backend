@@ -1,6 +1,7 @@
 package com.example.Paws_Backend.service;
 
 import com.example.Paws_Backend.model.Appointment;
+import com.example.Paws_Backend.model.AppointmentStatus;
 import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.repository.AppointmentRepository;
 import com.example.Paws_Backend.repository.UserRepository;
@@ -34,6 +35,44 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         return appointmentRepository.save(appointment);
+    }
+    @Override
+    public void approveAppointment(Long appointmentId, Long vetId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment does not exist."));
+
+        if (!appointment.getVet().getId().equals(vetId)) {
+            throw new IllegalArgumentException("Vet does not have permission to approve this appointment.");
+        }
+
+        appointment.setStatus(AppointmentStatus.SCHEDULED);
+        appointmentRepository.save(appointment);
+    }
+
+    @Override
+    public void rejectAppointment(Long appointmentId, Long vetId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment does not exist."));
+
+        if (!appointment.getVet().getId().equals(vetId)) {
+            throw new IllegalArgumentException("Vet does not have permission to reject this appointment.");
+        }
+
+        appointment.setStatus(AppointmentStatus.CANCELED);
+        appointmentRepository.save(appointment);
+    }
+
+    @Override
+    public void completeAppointment(Long appointmentId, Long vetId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment does not exist."));
+
+        if (!appointment.getVet().getId().equals(vetId)) {
+            throw new IllegalArgumentException("Vet does not have permission to complete this appointment.");
+        }
+
+        appointment.setStatus(AppointmentStatus.COMPLETED);
+        appointmentRepository.save(appointment);
     }
 
     @Override

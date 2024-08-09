@@ -44,6 +44,7 @@ public class UserServiceImpl implements UserService {
         if (userOptional.isEmpty()) {
             return null; // Or handle it as you see fit
         }
+
         User existingUser = userOptional.get();
         if (user.getName() != null && !user.getName().trim().isEmpty())
             existingUser.setName(user.getName());

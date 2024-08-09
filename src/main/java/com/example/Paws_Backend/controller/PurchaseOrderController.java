@@ -3,6 +3,7 @@ package com.example.Paws_Backend.controller;
 import com.example.Paws_Backend.dto.ItemsNeedingApprovalDTO;
 import com.example.Paws_Backend.model.PurchaseOrder;
 import com.example.Paws_Backend.model.User;
+import com.example.Paws_Backend.repository.PurchaseOrderRepository;
 import com.example.Paws_Backend.service.PurchaseOrderService;
 import com.example.Paws_Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,8 @@ public class PurchaseOrderController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private PurchaseOrderRepository purchaseOrderRepository;
 
     @PostMapping
     public ResponseEntity<PurchaseOrder> createOrder(@RequestHeader("Authorization") String jwt, @RequestBody PurchaseOrder order) {
@@ -38,7 +41,8 @@ public class PurchaseOrderController {
     public ResponseEntity<String> confirmOrder(@PathVariable Long orderId) {
         boolean isConfirmed = purchaseOrderService.confirmOrder(orderId);
         if (isConfirmed) {
-            return ResponseEntity.ok("Order confirmed successfully.");
+            PurchaseOrder order = purchaseOrderRepository.findById(orderId).get();
+            return ResponseEntity.ok("Order confirmed successfully. OTP: " + order.getOtp());
         } else {
             return ResponseEntity.status(400).body("Order could not be confirmed. Not all items are approved.");
         }
@@ -137,6 +141,18 @@ public class PurchaseOrderController {
             return ResponseEntity.badRequest().body(null);
         }
     }
-
+    @PostMapping("/{orderId}/complete")
+    public ResponseEntity<String> completeOrder(@PathVariable Long orderId,
+                                                @RequestParam Long sellerId,
+                                                @RequestParam String otp) {
+        try {
+            purchaseOrderService.completeOrder(orderId, sellerId, otp);
+            return ResponseEntity.ok("Order completed successfully.");
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
 }

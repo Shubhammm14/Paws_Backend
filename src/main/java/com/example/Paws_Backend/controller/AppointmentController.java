@@ -25,6 +25,7 @@ public class AppointmentController {
         List<User> vets = appointmentService.searchVets(keyword);
         return ResponseEntity.ok(vets);
     }
+
     @PostMapping
     public ResponseEntity<Appointment> createAppointment(@RequestHeader("Authorization") String jwt, @RequestBody Appointment appointment) {
         User user = userService.findUserByJwt(jwt);
@@ -56,5 +57,40 @@ public class AppointmentController {
     public ResponseEntity<List<Appointment>> getAppointmentsByClient(@PathVariable Long clientId) {
         List<Appointment> appointments = appointmentService.getAppointmentsByClient(clientId);
         return ResponseEntity.ok(appointments);
+    }
+
+    // New endpoints for appointment approval, rejection, and completion
+
+    @PutMapping("/{appointmentId}/approve")
+    public ResponseEntity<String> approveAppointment(@PathVariable Long appointmentId, @RequestHeader("Authorization") String jwt) {
+        User vet = userService.findUserByJwt(jwt);
+        if (vet == null || !"vet".equalsIgnoreCase(vet.getUserRole())) {
+            return ResponseEntity.status(403).body("Only vets can approve appointments.");
+        }
+
+        appointmentService.approveAppointment(appointmentId, vet.getId());
+        return ResponseEntity.ok("Appointment approved and scheduled.");
+    }
+
+    @PutMapping("/{appointmentId}/reject")
+    public ResponseEntity<String> rejectAppointment(@PathVariable Long appointmentId, @RequestHeader("Authorization") String jwt) {
+        User vet = userService.findUserByJwt(jwt);
+        if (vet == null || !"vet".equalsIgnoreCase(vet.getUserRole())) {
+            return ResponseEntity.status(403).body("Only vets can reject appointments.");
+        }
+
+        appointmentService.rejectAppointment(appointmentId, vet.getId());
+        return ResponseEntity.ok("Appointment rejected.");
+    }
+
+    @PutMapping("/{appointmentId}/complete")
+    public ResponseEntity<String> completeAppointment(@PathVariable Long appointmentId, @RequestHeader("Authorization") String jwt) {
+        User vet = userService.findUserByJwt(jwt);
+        if (vet == null || !"vet".equalsIgnoreCase(vet.getUserRole())) {
+            return ResponseEntity.status(403).body("Only vets can complete appointments.");
+        }
+
+        appointmentService.completeAppointment(appointmentId, vet.getId());
+        return ResponseEntity.ok("Appointment completed.");
     }
 }

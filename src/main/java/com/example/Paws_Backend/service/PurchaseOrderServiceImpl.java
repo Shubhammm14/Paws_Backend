@@ -64,6 +64,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         if (order.getSellerApprovalStatuses().values().stream().allMatch(Boolean::booleanValue)) {
             order.setOrderConfirmed(true);
+            order.generateOtp();  // Generate OTP when the order is confirmed
             purchaseOrderRepository.save(order);
             return true;
         }
@@ -160,11 +161,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        if (!order.getUser().getId().equals(userId)) {
+        boolean isSeller = order.getSellerApprovalStatuses().containsKey(userId);
+
+        if (!order.getUser().getId().equals(userId) && !isSeller) {
             throw new AccessDeniedException("User does not have permission to cancel this order.");
         }
 
-        if (LocalDateTime.now().isAfter(order.getShipmentTime())) {
+        if (!isSeller && LocalDateTime.now().isAfter(order.getShipmentTime())) {
             double deduction = order.getTotalOrderValue() * 0.30;
             order.setCancellationFee(deduction);
         } else {
@@ -173,6 +176,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         purchaseOrderRepository.save(order);
     }
+
     @Override
     public List<PurchaseOrder> getConfirmedOrdersByUser(Long userId) {
         return purchaseOrderRepository.findAll().stream()
@@ -203,6 +207,25 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                         && order.getSellerApprovalStatuses().get(sellerId)
                         && order.getCancellationFee() != null)
                 .collect(Collectors.toList());
+    }
+    @Override
+    public void completeOrder(Long orderId, Long sellerId, String otp) throws AccessDeniedException {
+        PurchaseOrder order = purchaseOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
+
+        // Check if the order belongs to the seller
+        if (!order.getProduct().getSeller().getId().equals(sellerId) && !order.getPet().getSeller().getId().equals(sellerId)) {
+            throw new AccessDeniedException("Seller does not have permission to complete this order.");
+        }
+
+        // Check if the OTP matches
+        if (!order.getOtp().equals(otp)) {
+            throw new IllegalArgumentException("Invalid OTP.");
+        }
+
+        // Mark the order as completed
+        order.setOrderCompleted(true);
+        purchaseOrderRepository.save(order);
     }
 
 

@@ -8,6 +8,12 @@ import java.util.List;
 public interface AppointmentService {
     Appointment createAppointment(Appointment appointment);
 
+    void approveAppointment(Long appointmentId, Long vetId);
+
+    void rejectAppointment(Long appointmentId, Long vetId);
+
+    void completeAppointment(Long appointmentId, Long vetId);
+
     List<Appointment> getAppointmentsByVet(Long vetId);
 
     List<Appointment> getAppointmentsByClient(Long clientId);
