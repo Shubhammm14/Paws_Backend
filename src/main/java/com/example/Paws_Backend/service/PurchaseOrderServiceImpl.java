@@ -1,15 +1,13 @@
 package com.example.Paws_Backend.service;
 
-import com.example.Paws_Backend.model.Pet;
-import com.example.Paws_Backend.model.Product;
-import com.example.Paws_Backend.model.PurchaseOrder;
-import com.example.Paws_Backend.model.User;
+import com.example.Paws_Backend.dto.ItemsNeedingApprovalDTO;
+import com.example.Paws_Backend.model.*;
 import com.example.Paws_Backend.repository.PurchaseOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.AccessDeniedException;
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,29 +26,29 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private PetService petService;
 
     @Override
-    public PurchaseOrder createOrder(PurchaseOrder order, User user) {
+    public PurchaseOrder createOrder(PurchaseOrder order) {
+        User user = order.getUser();
         if (!"consumer".equalsIgnoreCase(user.getUserRole())) {
             throw new IllegalArgumentException("Only users with the role 'consumer' can create orders.");
         }
 
         // Initialize the seller approval statuses map
-        Map<Long, Boolean> sellerApprovalStatuses = new HashMap<>();
+        Map<Long, Boolean> sellerApprovalStatuses;
 
-        if (order.getProducts() != null) {
-            for (Product product : order.getProducts()) {
-                sellerApprovalStatuses.put(product.getSeller().getId(), false);
-            }
+        if (order.getProduct() != null) {
+            sellerApprovalStatuses = Map.of(order.getProduct().getSeller().getId(), false);
+        } else if (order.getPet() != null) {
+            sellerApprovalStatuses = Map.of(order.getPet().getSeller().getId(), false);
+        } else {
+            throw new IllegalArgumentException("Order must contain either a product or a pet.");
         }
-        if (order.getPets() != null) {
-            for (Pet pet : order.getPets()) {
-                sellerApprovalStatuses.put(pet.getSeller().getId(), false);
-            }
-        }
+
         order.setSellerApprovalStatuses(sellerApprovalStatuses);
         order.setUser(user);
 
         return purchaseOrderRepository.save(order);
     }
+
     @Override
     public List<PurchaseOrder> getApprovedOrdersByUser(Long userId) {
         return purchaseOrderRepository.findById(userId).stream()
@@ -58,6 +56,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                         .allMatch(Boolean::booleanValue))
                 .collect(Collectors.toList());
     }
+
     @Override
     public boolean confirmOrder(Long orderId) {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
@@ -70,46 +69,33 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
         return false;
     }
+
     @Override
-    public List<Product> getProductsNeedingApproval(Long sellerId) {
+    public ItemsNeedingApprovalDTO getProductsNeedingApproval(Long sellerId) {
         List<PurchaseOrder> orders = purchaseOrderRepository.findAll();
 
-        return orders.stream()
-                .flatMap(order -> order.getProducts().stream()
-                        .filter(product -> product.getSeller().getId().equals(sellerId) &&
-                                !order.getSellerApprovalStatuses().getOrDefault(sellerId, false)))
+        // Filter products needing approval
+        List<Product> productsNeedingApproval = orders.stream()
+                .filter(order -> order.getProduct() != null &&
+                        order.getProduct().getSeller().getId().equals(sellerId) &&
+                        !order.getSellerApprovalStatuses().getOrDefault(sellerId, false))
+                .map(PurchaseOrder::getProduct)
                 .distinct()
                 .collect(Collectors.toList());
+
+        // Filter pets needing approval
+        List<Pet> petsNeedingApproval = orders.stream()
+                .filter(order -> order.getPet() != null &&
+                        order.getPet().getSeller().getId().equals(sellerId) &&
+                        !order.getSellerApprovalStatuses().getOrDefault(sellerId, false))
+                .map(PurchaseOrder::getPet)
+                .distinct()
+                .collect(Collectors.toList());
+
+        return new ItemsNeedingApprovalDTO(productsNeedingApproval, petsNeedingApproval);
     }
-    @Override
-    public void handleItemApproval(Long orderId, Long itemId, Long userId, boolean approve) throws AccessDeniedException {
-        // Retrieve the order
-        PurchaseOrder order = purchaseOrderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        // Try to find the item in products or pets
-        Optional<Product> productOpt = productService.getProductById(itemId);
-        Optional<Pet> petOpt = petService.getPetById(itemId);
 
-        boolean itemFound = false;
-        if (productOpt.isPresent() && productOpt.get().getSeller().getId().equals(userId)) {
-            itemFound = true;
-        } else if (petOpt.isPresent() && petOpt.get().getSeller().getId().equals(userId)) {
-            itemFound = true;
-        }
-
-        if (!itemFound) {
-            throw new AccessDeniedException("User does not have permission to handle this item.");
-        }
-
-        // Update the approval status
-        Map<Long, Boolean> statuses = order.getSellerApprovalStatuses();
-        statuses.put(userId, approve);
-        order.setSellerApprovalStatuses(statuses);
-
-        // Save the updated order
-        purchaseOrderRepository.save(order);
-    }
 
 
     @Override
@@ -135,4 +121,89 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                         order.getSellerApprovalStatuses().get(sellerId))
                 .collect(Collectors.toList());
     }
+    @Override
+    public void handleItemApproval(Long orderId, Long itemId, Long userId, boolean approve, LocalDateTime shipmentTime) throws AccessDeniedException {
+        // Retrieve the order
+        PurchaseOrder order = purchaseOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
+
+        // Check if the seller is approving the item
+        Optional<Product> productOpt = productService.getProductById(itemId);
+        Optional<Pet> petOpt = petService.getPetById(itemId);
+
+        boolean itemFound = false;
+        if (productOpt.isPresent() && productOpt.get().getSeller().getId().equals(userId)) {
+            itemFound = true;
+        } else if (petOpt.isPresent() && petOpt.get().getSeller().getId().equals(userId)) {
+            itemFound = true;
+        }
+
+        if (!itemFound) {
+            throw new AccessDeniedException("User does not have permission to handle this item.");
+        }
+
+        // Update the approval status and set shipment time if approved
+        Map<Long, Boolean> statuses = order.getSellerApprovalStatuses();
+        statuses.put(userId, approve);
+        order.setSellerApprovalStatuses(statuses);
+
+        if (approve) {
+            order.setShipmentTime(shipmentTime);
+        }
+
+        // Save the updated order
+        purchaseOrderRepository.save(order);
+    }
+
+    @Override
+    public void cancelOrder(Long orderId, Long userId) throws AccessDeniedException {
+        PurchaseOrder order = purchaseOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
+
+        if (!order.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("User does not have permission to cancel this order.");
+        }
+
+        if (LocalDateTime.now().isAfter(order.getShipmentTime())) {
+            double deduction = order.getTotalOrderValue() * 0.30;
+            order.setCancellationFee(deduction);
+        } else {
+            order.setCancellationFee(0.0);
+        }
+
+        purchaseOrderRepository.save(order);
+    }
+    @Override
+    public List<PurchaseOrder> getConfirmedOrdersByUser(Long userId) {
+        return purchaseOrderRepository.findAll().stream()
+                .filter(order -> order.getUser().getId().equals(userId) && order.isOrderConfirmed())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PurchaseOrder> getCanceledOrdersByUser(Long userId) {
+        return purchaseOrderRepository.findAll().stream()
+                .filter(order -> order.getUser().getId().equals(userId) && order.getCancellationFee() != null)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PurchaseOrder> getConfirmedOrdersBySeller(Long sellerId) {
+        return purchaseOrderRepository.findAll().stream()
+                .filter(order -> order.getSellerApprovalStatuses().containsKey(sellerId)
+                        && order.getSellerApprovalStatuses().get(sellerId)
+                        && order.isOrderConfirmed())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PurchaseOrder> getCanceledOrdersBySeller(Long sellerId) {
+        return purchaseOrderRepository.findAll().stream()
+                .filter(order -> order.getSellerApprovalStatuses().containsKey(sellerId)
+                        && order.getSellerApprovalStatuses().get(sellerId)
+                        && order.getCancellationFee() != null)
+                .collect(Collectors.toList());
+    }
+
+
 }

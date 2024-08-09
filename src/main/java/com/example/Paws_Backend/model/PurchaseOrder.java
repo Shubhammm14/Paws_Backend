@@ -3,7 +3,6 @@ package com.example.Paws_Backend.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -13,15 +12,15 @@ public class PurchaseOrder {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @OneToMany
+    @ManyToOne
     @JoinColumn(name = "product_id")
-    private List<Product> products;
+    private Product product;
 
-    @OneToMany
+    @ManyToOne
     @JoinColumn(name = "pet_id")
-    private List<Pet> pets;
+    private Pet pet;
 
-    private Double originalPrice;
+    private Double price;
     private Double deliveryCost;
     private Double totalOrderValue;
     private LocalDateTime orderedTime;
@@ -41,52 +40,53 @@ public class PurchaseOrder {
     private Map<Long, Boolean> sellerApprovalStatuses;
 
     private boolean orderConfirmed;
+    private LocalDateTime shipmentTime;
+    private Double cancellationFee;
 
-//    @Transient
-//    private GeocodingService geocodingService;
+    // Getters and Setters...
 
-    // Default constructor
+    public LocalDateTime getShipmentTime() {
+        return shipmentTime;
+    }
+
+    public void setShipmentTime(LocalDateTime shipmentTime) {
+        this.shipmentTime = shipmentTime;
+    }
+
+    public Double getCancellationFee() {
+        return cancellationFee;
+    }
+
+    public void setCancellationFee(Double cancellationFee) {
+        this.cancellationFee = cancellationFee;
+    }
     public PurchaseOrder() {
     }
 
-    // Parameterized constructor
-    public PurchaseOrder(List<Product> products, List<Pet> pets,  User user,Double deliveryCost,Double totalOrderValue, String senderAddress, String receiverAddress, boolean orderConfirmed) {
-        this.products = products;
-        this.pets = pets;
-        this.originalPrice = calculateOriginalPrice();
-        //this.deliveryCost = calculateDeliveryCost(senderAddress, receiverAddress, geocodingService);
-        //this.totalOrderValue = calculateTotalOrderValue();
-        this.deliveryCost=deliveryCost;
-        this.totalOrderValue=totalOrderValue;
+    public PurchaseOrder(Product product, Pet pet, User user, Double deliveryCost, Double totalOrderValue, String senderAddress, String receiverAddress, boolean orderConfirmed) {
+        this.product = product;
+        this.pet = pet;
+        this.price = calculatePrice();
+        this.deliveryCost = deliveryCost;
+        this.totalOrderValue = totalOrderValue;
         this.orderedTime = LocalDateTime.now();
         this.user = user;
         this.senderAddress = senderAddress;
         this.receiverAddress = receiverAddress;
         this.orderConfirmed = orderConfirmed;
-       // this.geocodingService = geocodingService;
     }
 
-    private Double calculateOriginalPrice() {
-        double price = 0.0;
-        if (products != null) {
-            for (Product product : products) {
-                price += product.getPrice();
-            }
+    private Double calculatePrice() {
+        if (product != null) {
+            return Double.valueOf(product.getPrice());
+        } else if (pet != null) {
+            return Double.valueOf(pet.getPrice());
         }
-        if (pets != null) {
-            for (Pet pet : pets) {
-                price += pet.getPrice();
-            }
-        }
-        return price;
+        return 0.0;
     }
-
-
-
-
 
     private Double calculateTotalOrderValue() {
-        return calculateOriginalPrice() + (this.deliveryCost != null ? this.deliveryCost : 0.0);
+        return calculatePrice() + (this.deliveryCost != null ? this.deliveryCost : 0.0);
     }
 
     // Getters and Setters
@@ -98,28 +98,28 @@ public class PurchaseOrder {
         this.id = id;
     }
 
-    public List<Product> getProducts() {
-        return products;
+    public Product getProduct() {
+        return product;
     }
 
-    public void setProducts(List<Product> products) {
-        this.products = products;
+    public void setProduct(Product product) {
+        this.product = product;
     }
 
-    public List<Pet> getPets() {
-        return pets;
+    public Pet getPet() {
+        return pet;
     }
 
-    public void setPets(List<Pet> pets) {
-        this.pets = pets;
+    public void setPet(Pet pet) {
+        this.pet = pet;
     }
 
-    public Double getOriginalPrice() {
-        return originalPrice;
+    public Double getPrice() {
+        return price;
     }
 
-    public void setOriginalPrice(Double originalPrice) {
-        this.originalPrice = originalPrice;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
     public Double getDeliveryCost() {
@@ -203,9 +203,9 @@ public class PurchaseOrder {
     public String toString() {
         return "PurchaseOrder{" +
                 "id=" + id +
-                ", products=" + products +
-                ", pets=" + pets +
-                ", originalPrice=" + originalPrice +
+                ", product=" + product +
+                ", pet=" + pet +
+                ", price=" + price +
                 ", deliveryCost=" + deliveryCost +
                 ", totalOrderValue=" + totalOrderValue +
                 ", orderedTime=" + orderedTime +
