@@ -26,7 +26,7 @@ public class PetServiceImpl implements PetService {
     }
 
     @Override
-    public Pet updatePet(Long id, Pet pet, Long userId) {
+    public Pet updatePet(Long id, Pet updatedPet, Long userId) {
         verifySellerRole(userId);
 
         // Check if the pet exists
@@ -38,10 +38,31 @@ public class PetServiceImpl implements PetService {
             throw new AccessDeniedException("User with ID " + userId + " is not the seller of the pet.");
         }
 
-        // Update pet details
-        pet.setId(id);
-        pet.setSeller(existingPet.getSeller()); // Preserve the existing seller information
-        return petRepository.save(pet);
+        // Update only non-null fields in the existing pet
+        if (updatedPet.getBreedName() != null) {
+            existingPet.setBreedName(updatedPet.getBreedName());
+        }
+        if (updatedPet.getImages() != null) {
+            existingPet.setImages(updatedPet.getImages());
+        }
+        if (updatedPet.getPetType() != null) {
+            existingPet.setPetType(updatedPet.getPetType());
+        }
+        if (updatedPet.getPetDescription() != null) {
+            existingPet.setPetDescription(updatedPet.getPetDescription());
+        }
+        if (updatedPet.getPrice() != null) {
+            existingPet.setPrice(updatedPet.getPrice());
+        }
+        if (updatedPet.getAge() != null) {
+            existingPet.setAge(updatedPet.getAge());
+        }
+
+        // Preserve the existing seller information
+        existingPet.setSeller(existingPet.getSeller());
+
+        // Save the updated pet
+        return petRepository.save(existingPet);
     }
 
 
