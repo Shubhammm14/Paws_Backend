@@ -30,17 +30,35 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product updateProduct(Long id, Product product, Long userId) {
+    public Product updateProduct(Long id, Product updatedProduct, Long userId) {
         verifySellerRole(userId);
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product with ID " + id + " does not exist."));
+
         if (!existingProduct.getSeller().getId().equals(userId)) {
             throw new AccessDeniedException("User with ID " + userId + " does not own the product.");
         }
-        product.setId(id);
-        product.setSeller(existingProduct.getSeller()); // Keep the same seller
-        return productRepository.save(product);
+
+        // Update only non-null fields in the existing product
+        if (updatedProduct.getName() != null) {
+            existingProduct.setName(updatedProduct.getName());
+        }
+        if (updatedProduct.getDescription() != null) {
+            existingProduct.setDescription(updatedProduct.getDescription());
+        }
+        if (updatedProduct.getPrice() != null) {
+            existingProduct.setPrice(updatedProduct.getPrice());
+        }
+        if (updatedProduct.getCategory() != null) {
+            existingProduct.setCategory(updatedProduct.getCategory());
+        }
+        if (updatedProduct.getImageUrl() != null) {
+            existingProduct.setImageUrl(updatedProduct.getImageUrl());
+        }
+
+        return productRepository.save(existingProduct);
     }
+
 
     @Override
     public void deleteProduct(Long id, Long userId) {
