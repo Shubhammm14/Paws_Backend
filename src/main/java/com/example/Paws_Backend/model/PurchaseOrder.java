@@ -46,53 +46,28 @@ public class PurchaseOrder {
     private Double cancellationFee;
     private String otp;
     private boolean orderCompleted;
-
-    // Getters and Setters
-    public String getOtp() {
-        return otp;
-    }
-
-    public void setOtp(String otp) {
-        this.otp = otp;
-    }
-
-    // Method to generate a random OTP
-    public void generateOtp() {
-        SecureRandom random = new SecureRandom();
-        int number = random.nextInt(999999);
-        this.otp = String.format("%06d", number);
-    }
-
-    public LocalDateTime getShipmentTime() {
-        return shipmentTime;
-    }
-
-    public void setShipmentTime(LocalDateTime shipmentTime) {
-        this.shipmentTime = shipmentTime;
-    }
-
-    public Double getCancellationFee() {
-        return cancellationFee;
-    }
-
-    public void setCancellationFee(Double cancellationFee) {
-        this.cancellationFee = cancellationFee;
-    }
+    private LocalDateTime approxDeliveryTime;
+    private LocalDateTime maxDeliveryTime;
+    private boolean orderCanceled;
 
     public PurchaseOrder() {
+        this.orderedTime = LocalDateTime.now();
+        this.price = calculatePrice();
+        this.totalOrderValue = calculateTotalOrderValue();
+        this.orderConfirmed = checkOrderConfirmation();
     }
 
-    public PurchaseOrder(Product product, Pet pet, User user, Double deliveryCost, Double totalOrderValue, String senderAddress, String receiverAddress, boolean orderConfirmed) {
-        this.product = product;
-        this.pet = pet;
-        this.price = calculatePrice();
-        this.deliveryCost = deliveryCost;
-        this.totalOrderValue = totalOrderValue;
-        this.orderedTime = LocalDateTime.now();
+    public PurchaseOrder(Product product, Pet pet, User user, Double deliveryCost, String senderAddress, String receiverAddress) {
+        this();
+        if (product != null) {
+            this.product = product;
+        } else if (pet != null) {
+            this.pet = pet;
+        }
         this.user = user;
+        this.deliveryCost = deliveryCost;
         this.senderAddress = senderAddress;
         this.receiverAddress = receiverAddress;
-        this.orderConfirmed = orderConfirmed;
     }
 
     private Double calculatePrice() {
@@ -108,6 +83,17 @@ public class PurchaseOrder {
         return calculatePrice() + (this.deliveryCost != null ? this.deliveryCost : 0.0);
     }
 
+    private boolean checkOrderConfirmation() {
+        return sellerApprovalStatuses != null && sellerApprovalStatuses.values().stream().allMatch(Boolean::booleanValue);
+    }
+
+    public void generateOtp() {
+        SecureRandom random = new SecureRandom();
+        int number = random.nextInt(999999);
+        this.otp = String.format("%06d", number);
+    }
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -122,6 +108,8 @@ public class PurchaseOrder {
 
     public void setProduct(Product product) {
         this.product = product;
+        this.price = calculatePrice();
+        this.totalOrderValue = calculateTotalOrderValue();
     }
 
     public Pet getPet() {
@@ -130,6 +118,8 @@ public class PurchaseOrder {
 
     public void setPet(Pet pet) {
         this.pet = pet;
+        this.price = calculatePrice();
+        this.totalOrderValue = calculateTotalOrderValue();
     }
 
     public Double getPrice() {
@@ -138,6 +128,7 @@ public class PurchaseOrder {
 
     public void setPrice(Double price) {
         this.price = price;
+        this.totalOrderValue = calculateTotalOrderValue();
     }
 
     public Double getDeliveryCost() {
@@ -146,6 +137,7 @@ public class PurchaseOrder {
 
     public void setDeliveryCost(Double deliveryCost) {
         this.deliveryCost = deliveryCost;
+        this.totalOrderValue = calculateTotalOrderValue();
     }
 
     public Double getTotalOrderValue() {
@@ -213,8 +205,28 @@ public class PurchaseOrder {
         this.orderConfirmed = orderConfirmed;
     }
 
-    private boolean checkOrderConfirmation() {
-        return sellerApprovalStatuses.values().stream().allMatch(Boolean::booleanValue);
+    public LocalDateTime getShipmentTime() {
+        return shipmentTime;
+    }
+
+    public void setShipmentTime(LocalDateTime shipmentTime) {
+        this.shipmentTime = shipmentTime;
+    }
+
+    public Double getCancellationFee() {
+        return cancellationFee;
+    }
+
+    public void setCancellationFee(Double cancellationFee) {
+        this.cancellationFee = cancellationFee;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
     }
 
     public boolean isOrderCompleted() {
@@ -223,6 +235,30 @@ public class PurchaseOrder {
 
     public void setOrderCompleted(boolean orderCompleted) {
         this.orderCompleted = orderCompleted;
+    }
+
+    public LocalDateTime getApproxDeliveryTime() {
+        return approxDeliveryTime;
+    }
+
+    public void setApproxDeliveryTime(LocalDateTime approxDeliveryTime) {
+        this.approxDeliveryTime = approxDeliveryTime;
+    }
+
+    public LocalDateTime getMaxDeliveryTime() {
+        return maxDeliveryTime;
+    }
+
+    public void setMaxDeliveryTime(LocalDateTime maxDeliveryTime) {
+        this.maxDeliveryTime = maxDeliveryTime;
+    }
+
+    public boolean isOrderCanceled() {
+        return orderCanceled;
+    }
+
+    public void setOrderCanceled(boolean orderCanceled) {
+        this.orderCanceled = orderCanceled;
     }
 
     @Override
@@ -245,6 +281,9 @@ public class PurchaseOrder {
                 ", cancellationFee=" + cancellationFee +
                 ", otp='" + otp + '\'' +
                 ", orderCompleted=" + orderCompleted +
+                ", approxDeliveryTime=" + approxDeliveryTime +
+                ", maxDeliveryTime=" + maxDeliveryTime +
+                ", orderCanceled=" + orderCanceled +
                 '}';
     }
 }

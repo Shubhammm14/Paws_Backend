@@ -9,21 +9,21 @@ import java.util.List;
 
 public interface PetRepository extends JpaRepository<Pet, Long> {
 
-//    @Query("SELECT p FROM Pet p WHERE " +
-//            "SIMILARITY(LOWER(p.breedName), LOWER(:keyword)) > 0.6 OR " +
-//            "SIMILARITY(LOWER(p.petType), LOWER(:keyword)) > 0.6 OR " +
-//            "SIMILARITY(LOWER(p.petDescription), LOWER(:keyword)) > 0.6 OR " +
-//            "SIMILARITY(CAST(p.price AS string), :keyword) > 0.6 OR " +
-//            "SIMILARITY(CAST(p.age AS string), :keyword) > 0.6 " +
-//            "ORDER BY SIMILARITY(LOWER(p.breedName), LOWER(:keyword)) DESC")
-//    List<Pet> searchPets(@Param("keyword") String keyword);
-@Query("SELECT p FROM Pet p WHERE " +
-        "MATCH(p.breedName, p.petType, p.petDescription) AGAINST(:keyword IN BOOLEAN MODE) " +
-        "OR CAST(p.price AS string) LIKE CONCAT('%', :keyword, '%') " +
-        "OR CAST(p.age AS string) LIKE CONCAT('%', :keyword, '%')")
-List<Pet> searchPets(@Param("keyword") String keyword);
+//    @Query(value = "SELECT * FROM pet WHERE MATCH(breed_name, pet_type, pet_description) AGAINST (?1 IN BOOLEAN MODE) " +
+//            "OR CAST(price AS CHAR) LIKE %?1% " +
+//            "OR CAST(age AS CHAR) LIKE %?1% " +
+//            "ORDER BY MATCH(breed_name, pet_type, pet_description) AGAINST (?1 IN BOOLEAN MODE) DESC",
+//            nativeQuery = true)
+//    List<Pet> searchPets(String keyword);
 
 
+    @Query("SELECT p FROM Pet p WHERE " +
+            "LOWER(p.breedName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.petType) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.petDescription) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "CAST(p.price AS string) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "CAST(p.age AS string) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Pet> searchPets(@Param("keyword") String keyword);
     @Query("SELECT p FROM Pet p WHERE p.seller.name LIKE %:sellerName%")
     List<Pet> findPetsBySellerName(@Param("sellerName") String sellerName);
 

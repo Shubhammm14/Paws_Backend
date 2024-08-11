@@ -18,9 +18,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 //            "ORDER BY SIMILARITY(LOWER(p.name), LOWER(:keyword)) DESC")
 //    List<Product> searchProducts(@Param("keyword") String keyword);
 
+//    @Query("SELECT p FROM Product p WHERE " +
+//            "MATCH(p.name, p.description, p.category) AGAINST(:keyword IN BOOLEAN MODE) " +
+//            "OR CONCAT(p.price) LIKE %:keyword%")
+//    List<Product> searchProducts(@Param("keyword") String keyword);
+
     @Query("SELECT p FROM Product p WHERE " +
-            "MATCH(p.name, p.description, p.category) AGAINST(:keyword IN BOOLEAN MODE) " +
-            "OR CAST(p.price AS string) LIKE CONCAT('%', :keyword, '%')")
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "CAST(p.price AS string) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.category) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Product> searchProducts(@Param("keyword") String keyword);
 
     @Query("SELECT p FROM Product p WHERE LOWER(p.seller.name) LIKE LOWER(CONCAT('%', :sellerName, '%'))")

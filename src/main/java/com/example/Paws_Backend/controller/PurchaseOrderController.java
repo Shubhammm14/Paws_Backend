@@ -32,7 +32,7 @@ public class PurchaseOrderController {
         if (user == null) {
             return ResponseEntity.status(401).body(null);
         }
-        PurchaseOrder createdOrder = purchaseOrderService.createOrder(order);
+        PurchaseOrder createdOrder = purchaseOrderService.createOrder(order, user);
         return ResponseEntity.ok(createdOrder);
     }
 
@@ -72,12 +72,17 @@ public class PurchaseOrderController {
                                                      @PathVariable Long itemId,
                                                      @PathVariable Long userId,
                                                      @RequestParam boolean approve,
-                                                     @RequestParam(required = false) LocalDateTime shipmentTime) {
+                                                     @RequestParam(required = false) LocalDateTime shipmentTime,
+                                                     @RequestParam(required = false) LocalDateTime approxDeliveryTime,
+                                                     @RequestParam(required = false) LocalDateTime maxDeliveryTime,
+                                                     @RequestParam(required = false) Double deliveryCost) {
         try {
-            if (approve && shipmentTime == null) {
-                return ResponseEntity.badRequest().body("Shipment time is required when approving the item.");
+            if (approve) {
+                if (shipmentTime == null || approxDeliveryTime == null || maxDeliveryTime == null || deliveryCost == null) {
+                    return ResponseEntity.badRequest().body("Shipment time, approximate delivery time, maximum delivery time, and delivery cost are required when approving the item.");
+                }
             }
-            purchaseOrderService.handleItemApproval(orderId, itemId, userId, approve, shipmentTime);
+            purchaseOrderService.handleItemApproval(orderId, itemId, userId, approve, shipmentTime, approxDeliveryTime, maxDeliveryTime, deliveryCost);
             return ResponseEntity.ok(approve ? "Item approved successfully." : "Item rejected successfully.");
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
@@ -85,6 +90,8 @@ public class PurchaseOrderController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
 
     @PutMapping("/{orderId}/cancel")
     public ResponseEntity<String> cancelOrder(@PathVariable Long orderId,
