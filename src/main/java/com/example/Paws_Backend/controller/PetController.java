@@ -44,7 +44,7 @@ public class PetController {
     public ResponseEntity<HttpStatus> deletePet(@PathVariable Long id, @RequestParam Long userId) {
         try {
             petService.deletePet(id, userId);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }

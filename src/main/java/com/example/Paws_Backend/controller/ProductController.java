@@ -44,7 +44,7 @@ public class ProductController {
     public ResponseEntity<HttpStatus> deleteProduct(@PathVariable Long id, @RequestParam Long userId) {
         try {
             productService.deleteProduct(id, userId);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }

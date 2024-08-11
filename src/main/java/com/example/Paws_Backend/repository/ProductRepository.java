@@ -10,11 +10,17 @@ import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+//    @Query("SELECT p FROM Product p WHERE " +
+//            "SIMILARITY(LOWER(p.name), LOWER(:keyword)) > 0.6 OR " +
+//            "SIMILARITY(LOWER(p.description), LOWER(:keyword)) > 0.6 OR " +
+//            "SIMILARITY(CAST(p.price AS string), :keyword) > 0.6 OR " +
+//            "SIMILARITY(LOWER(p.category), LOWER(:keyword)) > 0.6 " +
+//            "ORDER BY SIMILARITY(LOWER(p.name), LOWER(:keyword)) DESC")
+//    List<Product> searchProducts(@Param("keyword") String keyword);
+
     @Query("SELECT p FROM Product p WHERE " +
-            "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "CAST(p.price AS string) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.category) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "MATCH(p.name, p.description, p.category) AGAINST(:keyword IN BOOLEAN MODE) " +
+            "OR CAST(p.price AS string) LIKE CONCAT('%', :keyword, '%')")
     List<Product> searchProducts(@Param("keyword") String keyword);
 
     @Query("SELECT p FROM Product p WHERE LOWER(p.seller.name) LIKE LOWER(CONCAT('%', :sellerName, '%'))")
