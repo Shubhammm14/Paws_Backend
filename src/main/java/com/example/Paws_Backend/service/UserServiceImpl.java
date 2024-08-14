@@ -30,12 +30,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<PurchaseOrder> getOrdersNeedingApproval(Long sellerId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> {
-                    Boolean status = order.getSellerApprovalStatuses().get(sellerId);
-                    return status != null && !status; // Ensure the status is `false`
-                })
+                .filter(order -> order.getSeller() != null &&
+                        order.getSeller().getId().equals(sellerId) &&
+                        !order.isOrderConfirmed())
                 .collect(Collectors.toList());
     }
+
 
     @Override
     public User updateUser(User user, Long userId) {

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -40,9 +39,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         order.setUser(user);
-        order.setSellerApprovalStatuses(Map.of(
-                order.getProduct() != null ? order.getProduct().getSeller().getId() : order.getPet().getSeller().getId(), false
-        ));
+        order.setOrderStatus(OrderStatus.PENDING);
 
         return purchaseOrderRepository.save(order);
     }
@@ -52,15 +49,16 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return purchaseOrderRepository.findAll().stream()
                 .filter(order -> order.getUser().getId().equals(userId))
                 .filter(order -> !order.isOrderCanceled())
-                .filter(order -> order.isOrderConfirmed())
+                .filter(order -> order.getOrderStatus() == OrderStatus.APPROVED)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<PurchaseOrder> getOrdersNotYetApprovedBySeller(Long userId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> !order.isOrderCanceled()
-                        && !order.getSellerApprovalStatuses().getOrDefault(userId, false))
+                .filter(order -> !order.isOrderCanceled())
+                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING)
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(userId))
                 .collect(Collectors.toList());
     }
 
@@ -69,18 +67,15 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        if (order.isOrderConfirmed()) {
+        if (order.getOrderStatus() != OrderStatus.APPROVED) {
             return false;
         }
 
-        if (order.getSellerApprovalStatuses().values().stream().allMatch(Boolean::booleanValue)) {
-            order.setOrderedTime(LocalDateTime.now());
-            order.setOrderConfirmed(true);
-            order.generateOtp();
-            purchaseOrderRepository.save(order);
-            return true;
-        }
-        return false;
+        order.setOrderedTime(LocalDateTime.now());
+        order.setOrderStatus(OrderStatus.CONFIRMED);
+        order.generateOtp();
+        purchaseOrderRepository.save(order);
+        return true;
     }
 
     @Override
@@ -88,19 +83,19 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         List<PurchaseOrder> orders = purchaseOrderRepository.findAll();
 
         List<Product> productsNeedingApproval = orders.stream()
-                .filter(order -> !order.isOrderCanceled()
-                        && order.getProduct() != null
-                        && order.getProduct().getSeller().getId().equals(sellerId)
-                        && !order.getSellerApprovalStatuses().getOrDefault(sellerId, false))
+                .filter(order -> !order.isOrderCanceled())
+                .filter(order -> order.getProduct() != null)
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING)
                 .map(PurchaseOrder::getProduct)
                 .distinct()
                 .collect(Collectors.toList());
 
         List<Pet> petsNeedingApproval = orders.stream()
-                .filter(order -> !order.isOrderCanceled()
-                        && order.getPet() != null
-                        && order.getPet().getSeller().getId().equals(sellerId)
-                        && !order.getSellerApprovalStatuses().getOrDefault(sellerId, false))
+                .filter(order -> !order.isOrderCanceled())
+                .filter(order -> order.getPet() != null)
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING)
                 .map(PurchaseOrder::getPet)
                 .distinct()
                 .collect(Collectors.toList());
@@ -117,21 +112,25 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             throw new IllegalStateException("Order has already been canceled and cannot be rejected.");
         }
 
-        if (order.getSellerApprovalStatuses().containsKey(userId)) {
-            order.getSellerApprovalStatuses().put(userId, false);
-            purchaseOrderRepository.save(order);
-        } else {
-            throw new AccessDeniedException("User does not have permission to reject this order.");
+        if (!order.getOrderStatus().equals(OrderStatus.PENDING)) {
+            throw new AccessDeniedException("Order cannot be rejected as it is not in PENDING status.");
         }
+
+        if (order.getSeller() != null && !order.getSeller().getId().equals(userId)) {
+            throw new AccessDeniedException("You are not authorized to reject this order.");
+        }
+
+        order.setOrderStatus(OrderStatus.REJECTED);
+        order.setOrderCanceled(true);
+        purchaseOrderRepository.save(order);
     }
-//
+
     @Override
     public List<PurchaseOrder> getApprovedOrdersBySeller(Long sellerId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> order.getSellerApprovalStatuses().containsKey(sellerId)
-                        && order.getSellerApprovalStatuses().get(sellerId)
-                        && order.isOrderConfirmed()
-                        && !order.isOrderCanceled())
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.APPROVED)
+                .filter(order -> !order.isOrderCanceled())
                 .collect(Collectors.toList());
     }
 
@@ -144,27 +143,23 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        boolean itemMatchesOrder = (order.getProduct() != null && order.getProduct().getId().equals(itemId)) ||
-                (order.getPet() != null && order.getPet().getId().equals(itemId));
-
-        if (!itemMatchesOrder) {
-            throw new IllegalArgumentException("Item with ID " + itemId + " is not associated with this order.");
+        if (order.isOrderCanceled()) {
+            throw new IllegalStateException("Order has already been canceled and cannot be modified.");
         }
 
-        boolean isSeller = (order.getProduct() != null && order.getProduct().getSeller().getId().equals(userId)) ||
-                (order.getPet() != null && order.getPet().getSeller().getId().equals(userId));
-
-        if (!isSeller) {
-            throw new AccessDeniedException("User does not have permission to handle this item.");
+        if (order.getSeller() == null || !order.getSeller().getId().equals(userId)) {
+            throw new AccessDeniedException("You are not authorized to approve this order.");
         }
-
-        order.getSellerApprovalStatuses().put(userId, approve);
 
         if (approve) {
+            order.setOrderStatus(OrderStatus.APPROVED);
             order.setShipmentTime(shipmentTime);
             order.setApproxDeliveryTime(approxDeliveryTime);
             order.setMaxDeliveryTime(maxDeliveryTime);
             order.setDeliveryCost(deliveryCost);
+        } else {
+            order.setOrderStatus(OrderStatus.REJECTED);
+            order.setOrderCanceled(true);
         }
 
         purchaseOrderRepository.save(order);
@@ -175,24 +170,19 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        boolean isSeller = order.getSellerApprovalStatuses().containsKey(userId);
-
-        if (!order.getUser().getId().equals(userId) && !isSeller) {
-            throw new AccessDeniedException("User does not have permission to cancel this order.");
+        if (order.isOrderCanceled()) {
+            throw new IllegalStateException("Order has already been canceled.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        boolean isPastMaxDeliveryTime = order.getMaxDeliveryTime() != null && now.isAfter(order.getMaxDeliveryTime());
-
-        if (isPastMaxDeliveryTime) {
-            order.setCancellationFee(0.0);
-        } else if (order.getShipmentTime() != null && now.isAfter(order.getShipmentTime())) {
-            double deduction = order.getTotalOrderValue() * 0.30;
-            order.setCancellationFee(deduction);
-        } else {
-            order.setCancellationFee(0.0);
+        if (!order.getUser().getId().equals(userId) && (order.getSeller() == null || !order.getSeller().getId().equals(userId))) {
+            throw new AccessDeniedException("You are not authorized to cancel this order.");
         }
 
+        if (order.getOrderStatus() == OrderStatus.CONFIRMED && order.getShipmentTime() != null) {
+            order.setCancellationFee(order.getTotalOrderValue() * 0.30);
+        }
+
+        order.setOrderStatus(OrderStatus.CANCELED);
         order.setOrderCanceled(true);
         purchaseOrderRepository.save(order);
     }
@@ -200,36 +190,34 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     public List<PurchaseOrder> getConfirmedOrdersByUser(Long userId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> order.getUser().getId().equals(userId)
-                        && order.isOrderConfirmed()
-                        && !order.isOrderCanceled())
+                .filter(order -> order.getUser().getId().equals(userId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.CONFIRMED)
+                .filter(order -> !order.isOrderCanceled())
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<PurchaseOrder> getCanceledOrdersByUser(Long userId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> order.getUser().getId().equals(userId)
-                        && order.isOrderCanceled())
+                .filter(order -> order.getUser().getId().equals(userId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.CANCELED)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<PurchaseOrder> getConfirmedOrdersBySeller(Long sellerId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> order.getSellerApprovalStatuses().containsKey(sellerId)
-                        && order.getSellerApprovalStatuses().get(sellerId)
-                        && order.isOrderConfirmed()
-                        && !order.isOrderCanceled())
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.CONFIRMED)
+                .filter(order -> !order.isOrderCanceled())
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<PurchaseOrder> getCanceledOrdersBySeller(Long sellerId) {
         return purchaseOrderRepository.findAll().stream()
-                .filter(order -> order.getSellerApprovalStatuses().containsKey(sellerId)
-                        && order.getSellerApprovalStatuses().get(sellerId)
-                        && order.isOrderCanceled())
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
+                .filter(order -> order.getOrderStatus() == OrderStatus.CANCELED)
                 .collect(Collectors.toList());
     }
 
@@ -238,19 +226,20 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        if (!order.getSellerApprovalStatuses().containsKey(sellerId)) {
-            throw new AccessDeniedException("User does not have permission to complete this order.");
+        if (order.getOrderStatus() != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Order has not been confirmed and cannot be completed.");
         }
 
-        if (order.isOrderCompleted()) {
-            throw new IllegalStateException("Order has already been completed.");
+        if (order.getSeller() == null || !order.getSeller().getId().equals(sellerId)) {
+            throw new AccessDeniedException("You are not authorized to complete this order.");
         }
 
-        if (!order.getOtp().equals(otp)) {
-            throw new IllegalArgumentException("Invalid OTP provided.");
+        if (order.getOtp().equals(otp)) {
+            order.setOrderCompleted(true);
+            order.setOrderStatus(OrderStatus.COMPLETED);
+            purchaseOrderRepository.save(order);
+        } else {
+            throw new IllegalArgumentException("Invalid OTP.");
         }
-
-        order.setOrderCompleted(true);
-        purchaseOrderRepository.save(order);
     }
 }

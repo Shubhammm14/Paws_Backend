@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Entity
 public class PurchaseOrder {
@@ -31,15 +30,18 @@ public class PurchaseOrder {
     @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonIgnore
-    private User user;
+    private User user; // Consumer
+
+    @ManyToOne
+    @JoinColumn(name = "seller_id")
+    @JsonIgnore
+    private User seller; // Seller
 
     private String senderAddress;
     private String receiverAddress;
 
-    @ElementCollection
-    @MapKeyColumn(name = "seller_id")
-    @Column(name = "approval_status")
-    private Map<Long, Boolean> sellerApprovalStatuses;
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
 
     private boolean orderConfirmed;
     private LocalDateTime shipmentTime;
@@ -54,10 +56,10 @@ public class PurchaseOrder {
         this.orderedTime = LocalDateTime.now();
         this.price = calculatePrice();
         this.totalOrderValue = calculateTotalOrderValue();
-        this.orderConfirmed = checkOrderConfirmation();
+        this.orderStatus = OrderStatus.PENDING; // Set initial status to PENDING
     }
 
-    public PurchaseOrder(Product product, Pet pet, User user, Double deliveryCost, String senderAddress, String receiverAddress) {
+    public PurchaseOrder(Product product, Pet pet, User user, User seller, Double deliveryCost, String senderAddress, String receiverAddress) {
         this();
         if (product != null) {
             this.product = product;
@@ -65,6 +67,7 @@ public class PurchaseOrder {
             this.pet = pet;
         }
         this.user = user;
+        this.seller = seller;
         this.deliveryCost = deliveryCost;
         this.senderAddress = senderAddress;
         this.receiverAddress = receiverAddress;
@@ -81,10 +84,6 @@ public class PurchaseOrder {
 
     private Double calculateTotalOrderValue() {
         return calculatePrice() + (this.deliveryCost != null ? this.deliveryCost : 0.0);
-    }
-
-    private boolean checkOrderConfirmation() {
-        return sellerApprovalStatuses != null && sellerApprovalStatuses.values().stream().allMatch(Boolean::booleanValue);
     }
 
     public void generateOtp() {
@@ -172,6 +171,14 @@ public class PurchaseOrder {
         this.user = user;
     }
 
+    public User getSeller() {
+        return seller;
+    }
+
+    public void setSeller(User seller) {
+        this.seller = seller;
+    }
+
     public String getSenderAddress() {
         return senderAddress;
     }
@@ -188,13 +195,12 @@ public class PurchaseOrder {
         this.receiverAddress = receiverAddress;
     }
 
-    public Map<Long, Boolean> getSellerApprovalStatuses() {
-        return sellerApprovalStatuses;
+    public OrderStatus getOrderStatus() {
+        return orderStatus;
     }
 
-    public void setSellerApprovalStatuses(Map<Long, Boolean> sellerApprovalStatuses) {
-        this.sellerApprovalStatuses = sellerApprovalStatuses;
-        this.orderConfirmed = checkOrderConfirmation();
+    public void setOrderStatus(OrderStatus orderStatus) {
+        this.orderStatus = orderStatus;
     }
 
     public boolean isOrderConfirmed() {
@@ -273,9 +279,10 @@ public class PurchaseOrder {
                 ", orderedTime=" + orderedTime +
                 ", deliveryTime=" + deliveryTime +
                 ", user=" + user +
+                ", seller=" + seller +
                 ", senderAddress='" + senderAddress + '\'' +
                 ", receiverAddress='" + receiverAddress + '\'' +
-                ", sellerApprovalStatuses=" + sellerApprovalStatuses +
+                ", orderStatus=" + orderStatus +
                 ", orderConfirmed=" + orderConfirmed +
                 ", shipmentTime=" + shipmentTime +
                 ", cancellationFee=" + cancellationFee +
