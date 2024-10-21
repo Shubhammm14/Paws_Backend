@@ -38,24 +38,24 @@ public class AppointmentController {
         }
 
         User vet = userService.findUserById(appointment.getVet().getId());
+        //ySystem.out.println(vet);
         if (vet == null || !"vet".equalsIgnoreCase(vet.getUserRole())) {
             return ResponseEntity.badRequest().body(null); // Invalid vet
         }
-
         appointment.setClient(user);
         Appointment createdAppointment = appointmentService.createAppointment(appointment);
         return ResponseEntity.ok(createdAppointment);
     }
 
-    @GetMapping("/vet/{vetId}")
-    public ResponseEntity<List<Appointment>> getAppointmentsByVet(@PathVariable Long vetId) {
-        List<Appointment> appointments = appointmentService.getAppointmentsByVet(vetId);
+    @GetMapping("/vet")
+    public ResponseEntity<List<Appointment>> getAppointmentsByVet(@RequestHeader("Authorization") String jwt) {
+        List<Appointment> appointments = appointmentService.getAppointmentsByVet(userService.findUserByJwt(jwt).getId());
         return ResponseEntity.ok(appointments);
     }
 
-    @GetMapping("/client/{clientId}")
-    public ResponseEntity<List<Appointment>> getAppointmentsByClient(@PathVariable Long clientId) {
-        List<Appointment> appointments = appointmentService.getAppointmentsByClient(clientId);
+    @GetMapping("/client")
+    public ResponseEntity<List<Appointment>> getAppointmentsByClient(@RequestHeader("Authorization") String jwt) {
+        List<Appointment> appointments = appointmentService.getAppointmentsByClient(userService.findUserByJwt(jwt).getId());
         return ResponseEntity.ok(appointments);
     }
 

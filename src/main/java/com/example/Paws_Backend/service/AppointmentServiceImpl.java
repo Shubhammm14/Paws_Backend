@@ -33,7 +33,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (!"vet".equalsIgnoreCase(vet.getUserRole())) {
             throw new IllegalArgumentException("The selected user is not a vet.");
         }
-
+        appointment.setStatus(AppointmentStatus.PENDING);
         return appointmentRepository.save(appointment);
     }
     @Override

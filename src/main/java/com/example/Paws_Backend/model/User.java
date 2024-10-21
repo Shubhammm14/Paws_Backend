@@ -38,6 +38,14 @@ public class User {
         this.password = password;
         this.userRole = userRole;
     }
+    public User(String email, String name, String password, String userRole,String vetType, String vetDescription) {
+        this.email = email;
+        this.name = name;
+        this.password = password;
+        this.userRole = userRole;
+        this.vetType = vetType;
+        this.vetDescription = vetDescription;
+    }
 
     // Getters and Setters
     public Long getId() {

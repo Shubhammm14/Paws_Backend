@@ -14,12 +14,11 @@ import java.util.List;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByEmail(String email);
-    @Query(value = "SELECT * FROM User u WHERE " +
-            "REGEXP_LIKE(u.vetType, :keyword, 'i') OR " +
-            "REGEXP_LIKE(u.vetDescription, :keyword, 'i')",
-            nativeQuery = true)
+    @Query("SELECT u FROM User u WHERE u.userRole = 'vet' AND " +
+            "(LOWER(u.vetType) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.vetDescription) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<User> searchVets(@Param("keyword") String keyword);
-
 
 
 }

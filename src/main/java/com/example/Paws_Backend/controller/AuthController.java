@@ -38,7 +38,7 @@ public class AuthController {
         {
             throw new UserExcepition("this email already used with another account");
         }
-        User newUser=new User(user.getEmail(),user.getName(),passwordEncoder.encode(user.getPassword()),user.getUserRole());
+        User newUser=new User(user.getEmail(),user.getName(),passwordEncoder.encode(user.getPassword()),user.getUserRole(),user.getVetType(),user.getVetDescription());
         User  savedUser=userRepository.save(newUser);
         Authentication authentication=new UsernamePasswordAuthenticationToken(savedUser.getEmail(),savedUser.getPassword());
         String token= JwtProvider.generateToken(authentication);
