@@ -1,7 +1,3 @@
-Here's a README file content for your Spring Boot application:
-
----
-
 # Paws_Backend
 
 Paws_Backend is a Spring Boot application designed to manage users, pets, products, orders, and appointments for a pet-buying website. This application provides secure user authentication, CRUD operations for pets and products, order management, and appointment handling.
@@ -95,7 +91,7 @@ Paws_Backend is a Spring Boot application designed to manage users, pets, produc
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/Paws_Backend.git
+    git clone https://github.com/Shubhammm14/Paws_Backend.git
     ```
 
 2. Navigate to the project directory:
@@ -126,7 +122,3 @@ Feel free to contribute to this project by creating a pull request or submitting
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-This README provides a detailed overview of your project and how to use it. Adjust the information to match your project's specifics as needed.
