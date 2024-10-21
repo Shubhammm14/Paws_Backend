@@ -2,7 +2,9 @@ package com.example.Paws_Backend.controller;
 
 import com.example.Paws_Backend.model.Product;
 import com.example.Paws_Backend.service.ProductService;
+import com.example.Paws_Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,11 +19,15 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
+    @Autowired
+    private UserService userService;
+
     // Create a new product
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product, @RequestParam Long userId) {
+    public ResponseEntity<Product> createProduct(@RequestBody Product product, @RequestHeader("Authorization") String token) {
         try {
-            Product createdProduct = productService.createProduct(product, userId);
+
+            Product createdProduct = productService.createProduct(product, userService.findUserByJwt(token).getId());
             return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
@@ -30,9 +36,9 @@ public class ProductController {
 
     // Update an existing product
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product, @RequestParam Long userId) {
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product, @RequestHeader("Authorization") String token) {
         try {
-            Product updatedProduct = productService.updateProduct(id, product, userId);
+            Product updatedProduct = productService.updateProduct(id, product, userService.findUserByJwt(token).getId());
             return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
@@ -41,9 +47,9 @@ public class ProductController {
 
     // Delete a product
     @DeleteMapping("/{id}")
-    public ResponseEntity<HttpStatus> deleteProduct(@PathVariable Long id, @RequestParam Long userId) {
+    public ResponseEntity<HttpStatus> deleteProduct(@PathVariable Long id, @RequestHeader("Authorization") String token) {
         try {
-            productService.deleteProduct(id, userId);
+            productService.deleteProduct(id, userService.findUserByJwt(token).getId());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -74,15 +80,15 @@ public class ProductController {
 
     // Search products by seller name
     @GetMapping("/seller/name")
-    public ResponseEntity<List<Product>> getProductsBySellerName(@RequestParam String sellerName) {
-        List<Product> products = productService.findProductsBySellerName(sellerName);
+    public ResponseEntity<List<Product>> getProductsBySellerName(@RequestHeader("Authorization") String token) {
+        List<Product> products = productService.findProductsBySellerName(userService.findUserByJwt(token).getName());
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     // Search products by seller ID
-    @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<Product>> getProductsBySellerId(@PathVariable Long sellerId) {
-        List<Product> products = productService.findProductsBySellerId(sellerId);
+    @GetMapping("/seller/id")
+    public ResponseEntity<List<Product>> getProductsBySellerId(@RequestHeader("Authorization") String token) {
+        List<Product> products = productService.findProductsBySellerId(userService.findUserByJwt(token).getId());
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -96,8 +97,18 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public List<Pet> searchPets(String keyword) {
+        // Check if the keyword is null or empty
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList(); // Return an empty list or handle as needed
+        }
+
+        // Trim the keyword to remove leading and trailing whitespace
+        keyword = keyword.trim();
+
+        // Call the repository method with the validated keyword
         return petRepository.searchPets(keyword);
     }
+
     @Override
     public List<Pet> searchPetsBySellerId(Long sellerId) {
         return petRepository.findPetsBySellerId(sellerId);

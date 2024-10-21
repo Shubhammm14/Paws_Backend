@@ -4,9 +4,11 @@ import com.example.Paws_Backend.dto.ItemsNeedingApprovalDTO;
 import com.example.Paws_Backend.model.PurchaseOrder;
 import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.repository.PurchaseOrderRepository;
+import com.example.Paws_Backend.response.ErrorResponse;
 import com.example.Paws_Backend.service.PurchaseOrderService;
 import com.example.Paws_Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,8 +40,8 @@ public class PurchaseOrderController {
 
 
     @PutMapping("/{orderId}/confirm")
-    public ResponseEntity<String> confirmOrder(@PathVariable Long orderId) {
-        boolean isConfirmed = purchaseOrderService.confirmOrder(orderId);
+    public ResponseEntity<String> confirmOrder(@PathVariable Long orderId,@RequestHeader("Authorization") String token) {
+        boolean isConfirmed = purchaseOrderService.confirmOrder(orderId,userService.findUserByJwt(token).getId());
         if (isConfirmed) {
             PurchaseOrder order = purchaseOrderRepository.findById(orderId).get();
             return ResponseEntity.ok("Order confirmed successfully. OTP: " + order.getOtp());
@@ -48,29 +50,46 @@ public class PurchaseOrderController {
         }
     }
 
-    @GetMapping("/{userId}/approved-orders")
-    public ResponseEntity<?> getApprovedOrdersByUser(@PathVariable Long userId) {
+    @GetMapping("/approved-orders/user")
+    public ResponseEntity<?> getApprovedOrdersByUser(@RequestHeader("Authorization") String token) {
         try {
-            List<PurchaseOrder> approvedOrders = purchaseOrderService.getApprovedOrdersByUser(userId);
+            List<PurchaseOrder> approvedOrders = purchaseOrderService.getApprovedOrdersByUserId(userService.findUserByJwt(token).getId());
             return ResponseEntity.ok(approvedOrders);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
-    @GetMapping("/items-needing-approval/{sellerId}")
-    public ResponseEntity<ItemsNeedingApprovalDTO> getItemsNeedingApproval(@PathVariable Long sellerId) {
+    @GetMapping("/not-approved")
+    public ResponseEntity<?> getNotApprovedOrdersByUserId(@RequestHeader("Authorization") String token) {
         try {
-            ItemsNeedingApprovalDTO itemsNeedingApproval = purchaseOrderService.getProductsNeedingApproval(sellerId);
+            List<PurchaseOrder> notApprovedOrders = purchaseOrderService.getNotApprovedOrdersByUserId(userService.findUserByJwt(token).getId());
+            return ResponseEntity.ok(notApprovedOrders);
+        } catch (IllegalArgumentException e) {
+            // Return a response with a bad request status and an error message
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            // Handle other unexpected exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An unexpected error occurred."));
+        }
+    }
+
+    @GetMapping("/items-needing-approval/seller")
+    public ResponseEntity<ItemsNeedingApprovalDTO> getItemsNeedingApproval(@RequestHeader("Authorization") String token) {
+        try {
+            User user = userService.findUserByJwt(token);
+            if(user.getUserRole().equals("consumer"))
+                return ResponseEntity.status(403).body(null);
+            ItemsNeedingApprovalDTO itemsNeedingApproval = purchaseOrderService.getProductsNeedingApproval(user.getId());
             return ResponseEntity.ok(itemsNeedingApproval);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null);
         }
     }
-    @PutMapping("/{orderId}/handleItem/{itemId}/user/{userId}")
+    @PutMapping("/{orderId}/handleItem/{itemId}/user")
     public ResponseEntity<String> handleItemApproval(@PathVariable Long orderId,
                                                      @PathVariable Long itemId,
-                                                     @PathVariable Long userId,
+                                                     @RequestHeader("Authorization") String token,
                                                      @RequestParam boolean approve,
                                                      @RequestParam(required = false) LocalDateTime shipmentTime,
                                                      @RequestParam(required = false) LocalDateTime approxDeliveryTime,
@@ -82,7 +101,7 @@ public class PurchaseOrderController {
                     return ResponseEntity.badRequest().body("Shipment time, approximate delivery time, maximum delivery time, and delivery cost are required when approving the item.");
                 }
             }
-            purchaseOrderService.handleItemApproval(orderId, itemId, userId, approve, shipmentTime, approxDeliveryTime, maxDeliveryTime, deliveryCost);
+            purchaseOrderService.handleItemApproval(orderId, itemId, userService.findUserByJwt(token).getId(), approve, shipmentTime, approxDeliveryTime, maxDeliveryTime, deliveryCost);
             return ResponseEntity.ok(approve ? "Item approved successfully." : "Item rejected successfully.");
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
@@ -109,40 +128,40 @@ public class PurchaseOrderController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    @GetMapping("/user/{userId}/confirmed-orders")
-    public ResponseEntity<List<PurchaseOrder>> getConfirmedOrdersByUser(@PathVariable Long userId) {
+    @GetMapping("/user/confirmed-orders")
+    public ResponseEntity<List<PurchaseOrder>> getConfirmedOrdersByUser(@RequestHeader("Authorization") String token) {
         try {
-            List<PurchaseOrder> orders = purchaseOrderService.getConfirmedOrdersByUser(userId);
+            List<PurchaseOrder> orders = purchaseOrderService.getConfirmedOrdersByUser(userService.findUserByJwt(token).getId());
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
         }
     }
 
-    @GetMapping("/user/{userId}/canceled-orders")
-    public ResponseEntity<List<PurchaseOrder>> getCanceledOrdersByUser(@PathVariable Long userId) {
+    @GetMapping("/user/canceled-orders")
+    public ResponseEntity<List<PurchaseOrder>> getCanceledOrdersByUser(@RequestHeader("Authorization") String token) {
         try {
-            List<PurchaseOrder> orders = purchaseOrderService.getCanceledOrdersByUser(userId);
+            List<PurchaseOrder> orders = purchaseOrderService.getCanceledOrdersByUser(userService.findUserByJwt(token).getId());
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
         }
     }
 
-    @GetMapping("/seller/{sellerId}/confirmed-orders")
-    public ResponseEntity<List<PurchaseOrder>> getConfirmedOrdersBySeller(@PathVariable Long sellerId) {
+    @GetMapping("/seller/confirmed-orders")
+    public ResponseEntity<List<PurchaseOrder>> getConfirmedOrdersBySeller(@RequestHeader("Authorization") String token) {
         try {
-            List<PurchaseOrder> orders = purchaseOrderService.getConfirmedOrdersBySeller(sellerId);
+            List<PurchaseOrder> orders = purchaseOrderService.getConfirmedOrdersBySeller(userService.findUserByJwt(token).getId());
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
         }
     }
 
-    @GetMapping("/seller/{sellerId}/canceled-orders")
-    public ResponseEntity<List<PurchaseOrder>> getCanceledOrdersBySeller(@PathVariable Long sellerId) {
+    @GetMapping("/seller/canceled-orders")
+    public ResponseEntity<List<PurchaseOrder>> getCanceledOrdersBySeller(@RequestHeader("Authorization") String token) {
         try {
-            List<PurchaseOrder> orders = purchaseOrderService.getCanceledOrdersBySeller(sellerId);
+            List<PurchaseOrder> orders = purchaseOrderService.getCanceledOrdersBySeller(userService.findUserByJwt(token).getId());
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
@@ -150,10 +169,10 @@ public class PurchaseOrderController {
     }
     @PostMapping("/{orderId}/complete")
     public ResponseEntity<String> completeOrder(@PathVariable Long orderId,
-                                                @RequestParam Long sellerId,
+                                                @RequestHeader("Authorization") String token,
                                                 @RequestParam String otp) {
         try {
-            purchaseOrderService.completeOrder(orderId, sellerId, otp);
+            purchaseOrderService.completeOrder(orderId, userService.findUserByJwt(token).getId(), otp);
             return ResponseEntity.ok("Order completed successfully.");
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());

@@ -14,11 +14,14 @@ public interface PurchaseOrderService {
 
     PurchaseOrder createOrder(PurchaseOrder order, User user);
 
-   List<PurchaseOrder> getApprovedOrdersByUser(Long userId);
-//
+   List<PurchaseOrder> getApprovedOrdersByUserId(Long userId);
+
+    List<PurchaseOrder> getNotApprovedOrdersByUserId(Long userId);
+
+    //
     List<PurchaseOrder> getOrdersNotYetApprovedBySeller(Long userId);
 //
-    boolean confirmOrder(Long orderId);
+    boolean confirmOrder(Long orderId,Long userId);
 //
   ItemsNeedingApprovalDTO getProductsNeedingApproval(Long sellerId);
 

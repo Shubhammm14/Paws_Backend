@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,19 +38,38 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         order.setUser(user);
+        // Set the seller based on the product or pet
+        if (order.getProduct() != null) {
+            // Get the product's seller
+            User seller = order.getProduct().getSeller();
+            order.setSeller(seller);
+        } else if (order.getPet() != null) {
+            // Get the pet's seller (assuming the Pet class has a getSeller method)
+            User seller = order.getPet().getSeller(); // Make sure Pet class has a getSeller method
+            order.setSeller(seller);
+        }
         order.setOrderStatus(OrderStatus.PENDING);
 
         return purchaseOrderRepository.save(order);
     }
 
     @Override
-    public List<PurchaseOrder> getApprovedOrdersByUser(Long userId) {
+    public List<PurchaseOrder> getApprovedOrdersByUserId(Long userId) {
         return purchaseOrderRepository.findAll().stream()
                 .filter(order -> order.getUser().getId().equals(userId))
                 .filter(order -> !order.isOrderCanceled())
                 .filter(order -> order.getOrderStatus() == OrderStatus.APPROVED)
                 .collect(Collectors.toList());
     }
+    @Override
+    public List<PurchaseOrder> getNotApprovedOrdersByUserId(Long userId) {
+        return purchaseOrderRepository.findAll().stream()
+                .filter(order -> order.getUser().getId().equals(userId))
+                .filter(order -> !order.isOrderCanceled())
+                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     public List<PurchaseOrder> getOrdersNotYetApprovedBySeller(Long userId) {
@@ -63,11 +81,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
-    public boolean confirmOrder(Long orderId) {
+    public boolean confirmOrder(Long orderId,Long userId) {
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order with ID " + orderId + " does not exist."));
 
-        if (order.getOrderStatus() != OrderStatus.APPROVED) {
+        if (order.getOrderStatus() != OrderStatus.APPROVED||!order.getUser().getId().equals(userId)) {
             return false;
         }
 
@@ -77,31 +95,42 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrderRepository.save(order);
         return true;
     }
-
     @Override
     public ItemsNeedingApprovalDTO getProductsNeedingApproval(Long sellerId) {
+        // Fetch all purchase orders
+
         List<PurchaseOrder> orders = purchaseOrderRepository.findAll();
 
+        // Validate sellerId
+        if (sellerId == null) {
+            throw new IllegalArgumentException("Seller ID cannot be null.");
+        }
+
+        // Filter products needing approval
         List<Product> productsNeedingApproval = orders.stream()
-                .filter(order -> !order.isOrderCanceled())
-                .filter(order -> order.getProduct() != null)
-                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
-                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING)
-                .map(PurchaseOrder::getProduct)
-                .distinct()
+                .filter(order -> !order.isOrderCanceled()) // Exclude canceled orders
+                .filter(order -> order.getProduct() != null) // Check for products
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId)) // Match seller ID
+                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING) // Status is pending
+                .map(PurchaseOrder::getProduct) // Extract products
+                .distinct() // Ensure uniqueness
                 .collect(Collectors.toList());
 
+        // Filter pets needing approval
         List<Pet> petsNeedingApproval = orders.stream()
-                .filter(order -> !order.isOrderCanceled())
-                .filter(order -> order.getPet() != null)
-                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId))
-                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING)
-                .map(PurchaseOrder::getPet)
-                .distinct()
+                .filter(order -> !order.isOrderCanceled()) // Exclude canceled orders
+                .filter(order -> order.getPet() != null) // Check for pets
+                .filter(order -> order.getSeller() != null && order.getSeller().getId().equals(sellerId)) // Match seller ID
+                .filter(order -> order.getOrderStatus() == OrderStatus.PENDING) // Status is pending
+                .map(PurchaseOrder::getPet) // Extract pets
+                .distinct() // Ensure uniqueness
                 .collect(Collectors.toList());
 
+
+        // Return the DTO containing both lists
         return new ItemsNeedingApprovalDTO(productsNeedingApproval, petsNeedingApproval);
     }
+
 
     @Override
     public void rejectOrder(Long orderId, Long userId) throws AccessDeniedException {

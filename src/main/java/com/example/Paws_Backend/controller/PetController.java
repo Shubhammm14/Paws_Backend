@@ -68,7 +68,9 @@ public class PetController {
     // Search pets by keyword
     @GetMapping("/search")
     public ResponseEntity<List<Pet>> searchPets(@RequestParam String keyword) {
+        System.out.println(keyword);
         List<Pet> pets = petService.searchPets(keyword);
+
         return new ResponseEntity<>(pets, HttpStatus.OK);
     }
 
