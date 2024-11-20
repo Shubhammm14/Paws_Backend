@@ -23,7 +23,8 @@ public class User {
     private String vetType; // Added vetType property
     private String vetDescription; // Added vetDescription property
     private Integer numberOfAppointments; // Added numberOfAppointments property
-
+    @OneToMany(mappedBy = "user")
+    private List<Cart> cart;
     @OneToMany(mappedBy = "user")
     private List<PurchaseOrder> orders; // Changed to list of Order
 

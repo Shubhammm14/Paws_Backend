@@ -7,7 +7,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 public class Appointment {
@@ -16,7 +19,8 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    private LocalDateTime appointmentDate; // Date and time of the appointment
+    private LocalDate appointmentDate; // Date and time of the appointment
+    private LocalTime appointmentTime;
     private String description; // Description of the appointment
 
 
@@ -31,7 +35,7 @@ public class Appointment {
     }
 
     // Parameterized constructor
-    public Appointment(LocalDateTime appointmentDate, String description, AppointmentStatus status, User vet, User client) {
+    public Appointment(LocalDate appointmentDate, String description, AppointmentStatus status, User vet, User client) {
         this.appointmentDate = appointmentDate;
         this.description = description;
         this.status = status;
@@ -62,12 +66,20 @@ public class Appointment {
         this.id = id;
     }
 
-    public LocalDateTime getAppointmentDate() {
+    public LocalDate getAppointmentDate() {
         return appointmentDate;
     }
 
-    public void setAppointmentDate(LocalDateTime appointmentDate) {
+    public void setAppointmentDate(LocalDate appointmentDate) {
         this.appointmentDate = appointmentDate;
+    }
+
+    public LocalTime getAppointmentTime() {
+        return appointmentTime;
+    }
+
+    public void setAppointmentTime(LocalTime appointmentTime) {
+        this.appointmentTime = appointmentTime;
     }
 
     public String getDescription() {

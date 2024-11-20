@@ -2,7 +2,7 @@ package com.example.Paws_Backend.controller;
 
 import com.example.Paws_Backend.config.JwtProvider;
 import com.example.Paws_Backend.exception.UserExcepition;
-import com.example.Paws_Backend.model.CustomUserDetailService;
+import com.example.Paws_Backend.service.CustomUserDetailService;
 import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.repository.UserRepository;
 import com.example.Paws_Backend.request.LoginRequest;

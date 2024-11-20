@@ -1,7 +1,8 @@
-package com.example.Paws_Backend.model;
+package com.example.Paws_Backend.service;
 
 
 
+import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;

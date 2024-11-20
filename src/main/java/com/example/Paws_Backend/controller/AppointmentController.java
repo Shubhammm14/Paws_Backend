@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -26,8 +27,8 @@ public class AppointmentController {
         return ResponseEntity.ok(vets);
     }
 
-    @PostMapping
-    public ResponseEntity<Appointment> createAppointment(@RequestHeader("Authorization") String jwt, @RequestBody Appointment appointment) {
+    @PostMapping("/create/{id}")
+    public ResponseEntity<Appointment> createAppointment(@RequestHeader("Authorization") String jwt, @RequestBody Appointment appointment,@PathVariable long id) {
         User user = userService.findUserByJwt(jwt);
         if (user == null) {
             return ResponseEntity.status(401).body(null);
@@ -37,7 +38,7 @@ public class AppointmentController {
             return ResponseEntity.status(403).body(null); // Forbidden
         }
 
-        User vet = userService.findUserById(appointment.getVet().getId());
+        User vet = userService.findUserById(id);
         //ySystem.out.println(vet);
         if (vet == null || !"vet".equalsIgnoreCase(vet.getUserRole())) {
             return ResponseEntity.badRequest().body(null); // Invalid vet
@@ -62,13 +63,13 @@ public class AppointmentController {
     // New endpoints for appointment approval, rejection, and completion
 
     @PutMapping("/{appointmentId}/approve")
-    public ResponseEntity<String> approveAppointment(@PathVariable Long appointmentId, @RequestHeader("Authorization") String jwt) {
+    public ResponseEntity<String> approveAppointment(@PathVariable Long appointmentId, @RequestParam LocalTime time, @RequestHeader("Authorization") String jwt) {
         User vet = userService.findUserByJwt(jwt);
         if (vet == null || !"vet".equalsIgnoreCase(vet.getUserRole())) {
             return ResponseEntity.status(403).body("Only vets can approve appointments.");
         }
 
-        appointmentService.approveAppointment(appointmentId, vet.getId());
+        appointmentService.approveAppointment(appointmentId, vet.getId(),time);
         return ResponseEntity.ok("Appointment approved and scheduled.");
     }
 

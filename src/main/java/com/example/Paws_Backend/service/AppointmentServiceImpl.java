@@ -8,6 +8,7 @@ import com.example.Paws_Backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -37,14 +38,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentRepository.save(appointment);
     }
     @Override
-    public void approveAppointment(Long appointmentId, Long vetId) {
+    public void approveAppointment(Long appointmentId, Long vetId, LocalTime appointmentTime) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment does not exist."));
 
         if (!appointment.getVet().getId().equals(vetId)) {
             throw new IllegalArgumentException("Vet does not have permission to approve this appointment.");
         }
-
+        appointment.setAppointmentTime(appointmentTime);
         appointment.setStatus(AppointmentStatus.SCHEDULED);
         appointmentRepository.save(appointment);
     }
