@@ -3,9 +3,12 @@ package com.example.Paws_Backend.service;
 import com.example.Paws_Backend.model.Cart;
 import com.example.Paws_Backend.model.Pet;
 import com.example.Paws_Backend.model.Product;
+import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.repository.CartRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class CartServiceImpl implements CartService {
@@ -20,22 +23,26 @@ public class CartServiceImpl implements CartService {
     private PetService petService;
 
     @Override
-    public Cart createCart(Cart cart) {
-        if (cart.getUser() == null) {
-            throw new IllegalArgumentException("Cart must be associated with a user.");
+    public Cart getCartByUser(User user) {
+
+
+        // Find the cart associated with the user
+        Optional<Cart> cartOptional = cartRepository.findByUser(user);
+        if (cartOptional.isEmpty()) {
+            // If no cart exists, create a new one
+            Cart newCart = new Cart();
+            newCart.setUser(user);
+            return cartRepository.save(newCart);
         }
-        return cartRepository.save(cart);
-    }
 
-    @Override
-    public Cart getCartById(long cartId) {
-        return cartRepository.findById(cartId)
-                .orElseThrow(() -> new RuntimeException("Cart not found with id: " + cartId));
+        return cartOptional.get();
     }
-
     @Override
-    public Cart addProductToCart(long cartId, long productId) {
-        Cart cart = getCartById(cartId);
+    public Cart addProductToCart(User user, long productId) {
+        // Fetch or create cart for the user
+        Cart cart = cartRepository.findByUser(user)
+                .orElseGet(() -> createCartForUser(user));
+
         Product product = productService.getProductById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + productId));
 
@@ -49,8 +56,11 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public Cart addPetToCart(long cartId, long petId) {
-        Cart cart = getCartById(cartId);
+    public Cart addPetToCart(User user, long petId) {
+        // Fetch or create cart for the user
+        Cart cart = cartRepository.findByUser(user)
+                .orElseGet(() -> createCartForUser(user));
+
         Pet pet = petService.getPetById(petId)
                 .orElseThrow(() -> new RuntimeException("Pet not found with id: " + petId));
 
@@ -64,34 +74,47 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public Cart removeProductFromCart(long cartId, long productId) {
-        Cart cart = getCartById(cartId);
+    public Cart removeProductFromCart(User user, long productId) {
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Cart not found for the user."));
 
         boolean removed = cart.getProducts().removeIf(product -> product.getId() == productId);
         if (!removed) {
             throw new RuntimeException("Product not found in the cart with id: " + productId);
         }
 
+        // Delete the cart if it's empty
+        if (cart.getProducts().isEmpty() && cart.getPets().isEmpty()) {
+            cartRepository.delete(cart);
+            return null; // Indicate that the cart was deleted
+        }
+
         return cartRepository.save(cart);
     }
 
     @Override
-    public Cart removePetFromCart(long cartId, long petId) {
-        Cart cart = getCartById(cartId);
+    public Cart removePetFromCart(User user, long petId) {
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Cart not found for the user."));
 
         boolean removed = cart.getPets().removeIf(pet -> pet.getId() == petId);
         if (!removed) {
             throw new RuntimeException("Pet not found in the cart with id: " + petId);
         }
 
+        // Delete the cart if it's empty
+        if (cart.getProducts().isEmpty() && cart.getPets().isEmpty()) {
+            cartRepository.delete(cart);
+            return null; // Indicate that the cart was deleted
+        }
+
         return cartRepository.save(cart);
     }
 
-    @Override
-    public void deleteCart(long cartId) {
-        if (!cartRepository.existsById(cartId)) {
-            throw new RuntimeException("Cart not found with id: " + cartId);
-        }
-        cartRepository.deleteById(cartId);
+    // Helper method to create a cart for a user
+    private Cart createCartForUser(User user) {
+        Cart cart = new Cart();
+        cart.setUser(user);
+        return cartRepository.save(cart);
     }
 }

@@ -3,6 +3,7 @@ package com.example.Paws_Backend.controller;
 import com.example.Paws_Backend.model.Cart;
 import com.example.Paws_Backend.model.Pet;
 import com.example.Paws_Backend.model.Product;
+import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.service.CartService;
 import com.example.Paws_Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,46 +21,28 @@ public class CartController {
     @Autowired
     private UserService userService;
 
-    private void validateCartOwnership(long cartId, String token) {
-        Long userIdFromToken = userService.findUserByJwt(token).getId();
-        Cart cart = cartService.getCartById(cartId);
-        if (!cart.getUser().getId().equals(userIdFromToken)) {
-            throw new IllegalArgumentException("You are not authorized to modify this cart.");
-        }
+    private Long getUserIdFromToken(String token) {
+        return userService.findUserByJwt(token).getId();
     }
 
-    @PostMapping
-    public ResponseEntity<?> createCart(@RequestBody Cart cart, @RequestHeader("Authorization") String token) {
+    @GetMapping
+    public ResponseEntity<?> getUserCart(@RequestHeader("Authorization") String token) {
         try {
-            Long userId = userService.findUserByJwt(token).getId();
-            cart.setUser(userService.findUserById(userId));
-            Cart createdCart = cartService.createCart(cart);
-            return new ResponseEntity<>(createdCart, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Failed to create cart.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getCart(@PathVariable long id, @RequestHeader("Authorization") String token) {
-        try {
-            validateCartOwnership(id, token);
-            Cart cart = cartService.getCartById(id);
+           // Long userId = getUserIdFromToken(token);
+            User user=userService.findUserByJwt(token);
+            Cart cart = cartService.getCartByUser(user);
             return new ResponseEntity<>(cart, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
-            return new ResponseEntity<>("Cart not found.", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Cart not found for user.", HttpStatus.NOT_FOUND);
         }
     }
 
-    @PostMapping("/{id}/addProduct")
-    public ResponseEntity<?> addProduct(@PathVariable long id, @RequestBody Product product, @RequestHeader("Authorization") String token) {
+    @PostMapping("/addProduct/{productId}")
+    public ResponseEntity<?> addProductToCart(@PathVariable long productId, @RequestHeader("Authorization") String token) {
         try {
-            validateCartOwnership(id, token);
-            Cart updatedCart = cartService.addProductToCart(id, product.getId());
+            //Long userId = getUserIdFromToken(token);
+            User user=userService.findUserByJwt(token);
+            Cart updatedCart = cartService.addProductToCart(user, productId);
             return new ResponseEntity<>(updatedCart, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -68,11 +51,12 @@ public class CartController {
         }
     }
 
-    @PostMapping("/{id}/addPet")
-    public ResponseEntity<?> addPet(@PathVariable long id, @RequestBody Pet pet, @RequestHeader("Authorization") String token) {
+    @PostMapping("/addPet/{petId}")
+    public ResponseEntity<?> addPetToCart(@PathVariable long petId, @RequestHeader("Authorization") String token) {
         try {
-            validateCartOwnership(id, token);
-            Cart updatedCart = cartService.addPetToCart(id, pet.getId());
+            //Long userId = getUserIdFromToken(token);
+            User user=userService.findUserByJwt(token);
+            Cart updatedCart = cartService.addPetToCart(user, petId);
             return new ResponseEntity<>(updatedCart, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -81,11 +65,15 @@ public class CartController {
         }
     }
 
-    @DeleteMapping("/{id}/removeProduct/{productId}")
-    public ResponseEntity<?> removeProduct(@PathVariable long id, @PathVariable long productId, @RequestHeader("Authorization") String token) {
+    @DeleteMapping("/removeProduct/{productId}")
+    public ResponseEntity<?> removeProductFromCart(@PathVariable long productId, @RequestHeader("Authorization") String token) {
         try {
-            validateCartOwnership(id, token);
-            Cart updatedCart = cartService.removeProductFromCart(id, productId);
+            //Long userId = getUserIdFromToken(token);
+            User user=userService.findUserByJwt(token);
+            Cart updatedCart = cartService.removeProductFromCart(user, productId);
+            if (updatedCart == null) {
+                return new ResponseEntity<>("Cart is empty and has been deleted.", HttpStatus.OK);
+            }
             return new ResponseEntity<>(updatedCart, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -94,29 +82,20 @@ public class CartController {
         }
     }
 
-    @DeleteMapping("/{id}/removePet/{petId}")
-    public ResponseEntity<?> removePet(@PathVariable long id, @PathVariable long petId, @RequestHeader("Authorization") String token) {
+    @DeleteMapping("/removePet/{petId}")
+    public ResponseEntity<?> removePetFromCart(@PathVariable long petId, @RequestHeader("Authorization") String token) {
         try {
-            validateCartOwnership(id, token);
-            Cart updatedCart = cartService.removePetFromCart(id, petId);
+           // Long userId = getUserIdFromToken(token);
+            User user=userService.findUserByJwt(token);
+            Cart updatedCart = cartService.removePetFromCart(user, petId);
+            if (updatedCart == null) {
+                return new ResponseEntity<>("Cart is empty and has been deleted.", HttpStatus.OK);
+            }
             return new ResponseEntity<>(updatedCart, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             return new ResponseEntity<>("Failed to remove pet from cart.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCart(@PathVariable long id, @RequestHeader("Authorization") String token) {
-        try {
-            validateCartOwnership(id, token);
-            cartService.deleteCart(id);
-            return new ResponseEntity<>("Cart deleted successfully.", HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.FORBIDDEN);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Failed to delete cart.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

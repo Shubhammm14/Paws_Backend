@@ -2,6 +2,7 @@ package com.example.Paws_Backend.controller;
 
 import com.example.Paws_Backend.model.Pet;
 import com.example.Paws_Backend.service.PetService;
+import com.example.Paws_Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +17,13 @@ public class PetController {
 
     @Autowired
     private PetService petService;
-
+    @Autowired
+    private UserService userService;
     // Create a new pet
     @PostMapping
-    public ResponseEntity<Pet> createPet(@RequestBody Pet pet, @RequestParam Long userId) {
+    public ResponseEntity<Pet> createPet(@RequestBody Pet pet, @RequestHeader("Authorization")String token) {
         try {
-            Pet createdPet = petService.createPet(pet, userId);
+            Pet createdPet = petService.createPet(pet, userService.findUserByJwt(token).getId());
             return new ResponseEntity<>(createdPet, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
@@ -30,9 +32,9 @@ public class PetController {
 
     // Update an existing pet
     @PutMapping("/{id}")
-    public ResponseEntity<Pet> updatePet(@PathVariable Long id, @RequestBody Pet pet, @RequestParam Long userId) {
+    public ResponseEntity<Pet> updatePet(@PathVariable Long id, @RequestBody Pet pet, @RequestHeader("Authorization") String token) {
         try {
-            Pet updatedPet = petService.updatePet(id, pet, userId);
+            Pet updatedPet = petService.updatePet(id, pet, userService.findUserByJwt(token).getId());
             return new ResponseEntity<>(updatedPet, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
@@ -41,9 +43,9 @@ public class PetController {
 
     // Delete a pet
     @DeleteMapping("/{id}")
-    public ResponseEntity<HttpStatus> deletePet(@PathVariable Long id, @RequestParam Long userId) {
+    public ResponseEntity<HttpStatus> deletePet(@PathVariable Long id, @RequestHeader("Authorization")String token) {
         try {
-            petService.deletePet(id, userId);
+            petService.deletePet(id, userService.findUserByJwt(token).getId());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -68,7 +70,7 @@ public class PetController {
     // Search pets by keyword
     @GetMapping("/search")
     public ResponseEntity<List<Pet>> searchPets(@RequestParam String keyword) {
-        System.out.println(keyword);
+       // System.out.println(keyword);
         List<Pet> pets = petService.searchPets(keyword);
 
         return new ResponseEntity<>(pets, HttpStatus.OK);

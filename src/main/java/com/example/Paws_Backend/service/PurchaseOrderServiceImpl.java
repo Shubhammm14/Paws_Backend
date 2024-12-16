@@ -92,6 +92,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         order.setOrderedTime(LocalDateTime.now());
         order.setOrderStatus(OrderStatus.CONFIRMED);
         order.generateOtp();
+        order.setOrderConfirmed(true);
         purchaseOrderRepository.save(order);
         return true;
     }
@@ -164,9 +165,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
-    public void handleItemApproval(Long orderId, Long itemId, Long userId, boolean approve,
+    public void handleItemApproval(Long orderId, Long userId, boolean approve,
                                    LocalDateTime shipmentTime, LocalDateTime approxDeliveryTime,
-                                   LocalDateTime maxDeliveryTime, Double deliveryCost)
+                                   LocalDateTime maxDeliveryTime, Double deliveryCost, String senderAddress)
             throws AccessDeniedException {
 
         PurchaseOrder order = purchaseOrderRepository.findById(orderId)
@@ -186,6 +187,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             order.setApproxDeliveryTime(approxDeliveryTime);
             order.setMaxDeliveryTime(maxDeliveryTime);
             order.setDeliveryCost(deliveryCost);
+            order.setSenderAddress(senderAddress);
         } else {
             order.setOrderStatus(OrderStatus.REJECTED);
             order.setOrderCanceled(true);
@@ -265,6 +267,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         if (order.getOtp().equals(otp)) {
             order.setOrderCompleted(true);
+            order.setDeliveryTime(LocalDateTime.now());
             order.setOrderStatus(OrderStatus.COMPLETED);
             purchaseOrderRepository.save(order);
         } else {

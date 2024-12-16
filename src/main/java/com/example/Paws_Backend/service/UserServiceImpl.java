@@ -28,7 +28,8 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(email);
     }
     @Override
-    public List<PurchaseOrder> getOrdersNeedingApproval(Long sellerId) {
+    public List<PurchaseOrder> getOrdersNeedingApproval(String token) {
+        long sellerId=findUserByJwt(token).getId();
         return purchaseOrderRepository.findAll().stream()
                 .filter(order -> order.getSeller() != null &&
                         order.getSeller().getId().equals(sellerId) &&
@@ -38,25 +39,39 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public User updateUser(User user, Long userId) {
-        Optional<User> userOptional = userRepository.findById(userId);
-
-        if (userOptional.isEmpty()) {
+    public User updateUser(User user, String token) {
+        User existingUser = findUserByJwt(token);
+        if (existingUser==null) {
             return null; // Or handle it as you see fit
         }
 
-        User existingUser = userOptional.get();
-        if (user.getName() != null && !user.getName().trim().isEmpty())
+        if (user.getName() != null && !user.getName().trim().isEmpty()) {
             existingUser.setName(user.getName());
-        if (user.getEmail() != null && !user.getEmail().trim().isEmpty())
+        }
+        if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
             existingUser.setEmail(user.getEmail());
-        if (user.getPassword() != null && !user.getPassword().isEmpty())
+        }
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             existingUser.setPassword(user.getPassword());
-        if (user.getProfileImg() != null && !user.getProfileImg().trim().isEmpty())
+        }
+        if (user.getProfileImg() != null && !user.getProfileImg().trim().isEmpty()) {
             existingUser.setProfileImg(user.getProfileImg());
+        }
+
+        // Add null checks for userRole before accessing its value
+        if (user.getVetType() != null && !user.getVetType().trim().isEmpty() &&
+                existingUser.getUserRole() != null && existingUser.getUserRole().equalsIgnoreCase("vet")) {
+            existingUser.setVetType(user.getVetType());
+        }
+
+        if (user.getVetDescription() != null && !user.getVetDescription().trim().isEmpty() &&
+                existingUser.getUserRole() != null && existingUser.getUserRole().equalsIgnoreCase("vet")) {
+            existingUser.setVetDescription(user.getVetDescription());
+        }
 
         return userRepository.save(existingUser);
     }
+
 
     @Override
     public User findUserByJwt(String token) {

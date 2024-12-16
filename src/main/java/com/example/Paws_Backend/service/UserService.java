@@ -14,9 +14,9 @@ public interface UserService {
     public User findUserById(Long userId);
     public User findUserByEmail(String email);
 
-    List<PurchaseOrder> getOrdersNeedingApproval(Long sellerId);
+    List<PurchaseOrder> getOrdersNeedingApproval(String token);
 
 
-    public User updateUser(User user, Long userId) throws UserExcepition;
+    public User updateUser(User user, String token) throws UserExcepition;
     public User findUserByJwt( String token);
 }

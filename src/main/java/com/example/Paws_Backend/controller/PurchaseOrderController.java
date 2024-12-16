@@ -1,10 +1,14 @@
 package com.example.Paws_Backend.controller;
 
 import com.example.Paws_Backend.dto.ItemsNeedingApprovalDTO;
+import com.example.Paws_Backend.model.Pet;
+import com.example.Paws_Backend.model.Product;
 import com.example.Paws_Backend.model.PurchaseOrder;
 import com.example.Paws_Backend.model.User;
 import com.example.Paws_Backend.repository.PurchaseOrderRepository;
 import com.example.Paws_Backend.response.ErrorResponse;
+import com.example.Paws_Backend.service.PetService;
+import com.example.Paws_Backend.service.ProductService;
 import com.example.Paws_Backend.service.PurchaseOrderService;
 import com.example.Paws_Backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,22 +26,41 @@ public class PurchaseOrderController {
 
     @Autowired
     private PurchaseOrderService purchaseOrderService;
-
+    @Autowired
+    private ProductService productService;
+    @Autowired
+    private PetService petService;
     @Autowired
     private UserService userService;
     @Autowired
     private PurchaseOrderRepository purchaseOrderRepository;
 
-    @PostMapping
-    public ResponseEntity<PurchaseOrder> createOrder(@RequestHeader("Authorization") String jwt, @RequestBody PurchaseOrder order) {
+    @PostMapping("/product/{productId}")
+    public ResponseEntity<PurchaseOrder> createProductOrder(@RequestHeader("Authorization") String jwt, @RequestBody PurchaseOrder order,@PathVariable Long productId) {
         User user = userService.findUserByJwt(jwt);
+        Product product=productService.getProductById(productId).get();
+        order.setProduct(product);
+        order.setPrice(product.getPrice());
+        order.setOrderedTime(LocalDateTime.now());
         if (user == null) {
             return ResponseEntity.status(401).body(null);
         }
         PurchaseOrder createdOrder = purchaseOrderService.createOrder(order, user);
         return ResponseEntity.ok(createdOrder);
     }
-
+    @PostMapping("/pet/{petId}")
+    public ResponseEntity<PurchaseOrder> createPetOrder(@RequestHeader("Authorization") String jwt, @RequestBody PurchaseOrder order,@PathVariable Long petId) {
+        User user = userService.findUserByJwt(jwt);
+        Pet pet=petService.getPetById(petId).get();
+        order.setPet(pet);
+        order.setPrice(pet.getPrice());
+        order.setOrderedTime(LocalDateTime.now());
+        if (user == null) {
+            return ResponseEntity.status(401).body(null);
+        }
+        PurchaseOrder createdOrder = purchaseOrderService.createOrder(order, user);
+        return ResponseEntity.ok(createdOrder);
+    }
 
     @PutMapping("/{orderId}/confirm")
     public ResponseEntity<String> confirmOrder(@PathVariable Long orderId,@RequestHeader("Authorization") String token) {
@@ -86,22 +109,22 @@ public class PurchaseOrderController {
             return ResponseEntity.badRequest().body(null);
         }
     }
-    @PutMapping("/{orderId}/handleItem/{itemId}/user")
+    @PutMapping("/{orderId}/handleItem/user")
     public ResponseEntity<String> handleItemApproval(@PathVariable Long orderId,
-                                                     @PathVariable Long itemId,
                                                      @RequestHeader("Authorization") String token,
                                                      @RequestParam boolean approve,
+                                                     @RequestParam(required = false) String senderAddress,
                                                      @RequestParam(required = false) LocalDateTime shipmentTime,
                                                      @RequestParam(required = false) LocalDateTime approxDeliveryTime,
                                                      @RequestParam(required = false) LocalDateTime maxDeliveryTime,
                                                      @RequestParam(required = false) Double deliveryCost) {
         try {
             if (approve) {
-                if (shipmentTime == null || approxDeliveryTime == null || maxDeliveryTime == null || deliveryCost == null) {
+                if (senderAddress==null||shipmentTime == null || approxDeliveryTime == null || maxDeliveryTime == null || deliveryCost == null) {
                     return ResponseEntity.badRequest().body("Shipment time, approximate delivery time, maximum delivery time, and delivery cost are required when approving the item.");
                 }
             }
-            purchaseOrderService.handleItemApproval(orderId, itemId, userService.findUserByJwt(token).getId(), approve, shipmentTime, approxDeliveryTime, maxDeliveryTime, deliveryCost);
+            purchaseOrderService.handleItemApproval(orderId,  userService.findUserByJwt(token).getId(), approve, shipmentTime, approxDeliveryTime, maxDeliveryTime, deliveryCost,senderAddress);
             return ResponseEntity.ok(approve ? "Item approved successfully." : "Item rejected successfully.");
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());

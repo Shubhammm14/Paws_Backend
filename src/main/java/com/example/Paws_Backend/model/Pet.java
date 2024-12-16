@@ -18,7 +18,7 @@ public class Pet {
     private List<String> images;
     private String petType;
     private String petDescription;
-    private Long price;
+    private Double price;
     private Long age;
 
     @ManyToOne
@@ -29,7 +29,7 @@ public class Pet {
     }
 
     // Parameterized constructor
-    public Pet(Long id, String breedName, List<String> images, String petType, String petDescription, Long price, Long age, User seller) {
+    public Pet(Long id, String breedName, List<String> images, String petType, String petDescription, Double price, Long age, User seller) {
         this.id = id;
         this.breedName = breedName;
         this.images = images;
@@ -81,11 +81,11 @@ public class Pet {
         this.petDescription = petDescription;
     }
 
-    public Long getPrice() {
+    public Double getPrice() {
         return price;
     }
 
-    public void setPrice(Long price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 

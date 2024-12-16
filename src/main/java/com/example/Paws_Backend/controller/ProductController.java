@@ -79,16 +79,16 @@ public class ProductController {
     }
 
     // Search products by seller name
-    @GetMapping("/seller/name")
-    public ResponseEntity<List<Product>> getProductsBySellerName(@RequestHeader("Authorization") String token) {
-        List<Product> products = productService.findProductsBySellerName(userService.findUserByJwt(token).getName());
+    @GetMapping("/seller/{name}")
+    public ResponseEntity<List<Product>> getProductsBySellerName(@PathVariable String name) {
+        List<Product> products = productService.findProductsBySellerName(name);
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     // Search products by seller ID
-    @GetMapping("/seller/id")
-    public ResponseEntity<List<Product>> getProductsBySellerId(@RequestHeader("Authorization") String token) {
-        List<Product> products = productService.findProductsBySellerId(userService.findUserByJwt(token).getId());
+    @GetMapping("/seller/{id}")
+    public ResponseEntity<List<Product>> getProductsBySellerId(@PathVariable Long sellerId) {
+        List<Product> products = productService.findProductsBySellerId(sellerId);
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 }

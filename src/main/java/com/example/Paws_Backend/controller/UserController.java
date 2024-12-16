@@ -20,9 +20,9 @@ public class UserController {
     private UserService userService;
 
     // Get user by ID
-    @GetMapping("/{sellerId}/orders-needing-approval")
-    public List<PurchaseOrder> getOrdersNeedingApproval(@PathVariable Long sellerId) {
-        return userService.getOrdersNeedingApproval(sellerId);
+    @GetMapping("/orders-needing-approval")
+    public List<PurchaseOrder> getOrdersNeedingApproval(@RequestHeader("Authorization") String token) {
+        return userService.getOrdersNeedingApproval(token);
     }
     @GetMapping("/{userId}")
     public ResponseEntity<User> getUserById(@PathVariable Long userId) {
@@ -34,9 +34,9 @@ public class UserController {
     }
 
     // Update user details
-    @PutMapping("/{userId}")
-    public ResponseEntity<User> updateUser(@PathVariable Long userId, @RequestBody User user) throws UserExcepition {
-        User updatedUser = userService.updateUser(user, userId);
+    @PutMapping
+    public ResponseEntity<User> updateUser(@RequestHeader("Authorization") String token, @RequestBody User user) throws UserExcepition {
+        User updatedUser = userService.updateUser(user, token);
         if (updatedUser == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }

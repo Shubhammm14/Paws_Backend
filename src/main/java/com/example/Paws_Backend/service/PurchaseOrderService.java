@@ -30,9 +30,9 @@ public interface PurchaseOrderService {
     List<PurchaseOrder> getApprovedOrdersBySeller(Long sellerId);
 
 
-    void handleItemApproval(Long orderId, Long itemId, Long userId, boolean approve,
+    void handleItemApproval(Long orderId, Long userId, boolean approve,
                             LocalDateTime shipmentTime, LocalDateTime approxDeliveryTime,
-                            LocalDateTime maxDeliveryTime, Double deliveryCost)
+                            LocalDateTime maxDeliveryTime, Double deliveryCost, String senderAddress)
             throws AccessDeniedException;
 
     void cancelOrder(Long orderId, Long userId) throws AccessDeniedException;

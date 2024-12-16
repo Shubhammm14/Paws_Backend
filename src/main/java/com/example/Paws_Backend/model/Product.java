@@ -16,7 +16,7 @@ public class Product {
 
     private String name;
     private String description;
-    private Long price;
+    private Double price;
     private String category;
     private List<String> imageUrl;
 
@@ -28,7 +28,7 @@ public class Product {
     }
 
     // Parameterized constructor
-    public Product(String name, String description, Long price, String category, List<String> imageUrl, User seller) {
+    public Product(String name, String description, Double price, String category, List<String> imageUrl, User seller) {
         this.name = name;
         this.description = description;
         this.price = price;
@@ -62,11 +62,11 @@ public class Product {
         this.description = description;
     }
 
-    public Long getPrice() {
+    public Double getPrice() {
         return price;
     }
 
-    public void setPrice(Long price) {
+    public void setPrice(Double price) {
         this.price = price;
     }
 
