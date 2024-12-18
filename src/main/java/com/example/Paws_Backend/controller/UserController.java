@@ -24,6 +24,7 @@ public class UserController {
     public List<PurchaseOrder> getOrdersNeedingApproval(@RequestHeader("Authorization") String token) {
         return userService.getOrdersNeedingApproval(token);
     }
+
     @GetMapping("/{userId}")
     public ResponseEntity<User> getUserById(@PathVariable Long userId) {
         User user = userService.findUserById(userId);

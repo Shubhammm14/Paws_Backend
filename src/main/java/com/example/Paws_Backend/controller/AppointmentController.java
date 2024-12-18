@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -44,6 +45,7 @@ public class AppointmentController {
             return ResponseEntity.badRequest().body(null); // Invalid vet
         }
         appointment.setClient(user);
+        appointment.setVet(vet);
         Appointment createdAppointment = appointmentService.createAppointment(appointment);
         return ResponseEntity.ok(createdAppointment);
     }
